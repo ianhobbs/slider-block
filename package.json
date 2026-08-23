@@ -1,5 +1,5 @@
 {
-  "name": "ianhobbs-kirby-swiper-block",
+  "name": "ianhobbs-kirby-slider-block",
   "version": "1.5.1",
   "description": "Kirby CMS layout block plugin — Swiper 14 carousel with Panel editor and image cropping",
   "private": true,

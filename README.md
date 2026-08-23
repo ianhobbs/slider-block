@@ -1,8 +1,8 @@
-![Packagist Version](https://img.shields.io/packagist/v/ianhobbs/kirby-swiper-block)
+![Packagist Version](https://img.shields.io/packagist/v/ianhobbs/kirby-slider-block)
 ![Kirby 5](https://img.shields.io/badge/Kirby-5-black)
 ![License MIT](https://img.shields.io/badge/license-MIT-green)
 
-# Kirby Swiper Block
+# Kirby Slider Block
 
 A [Kirby CMS](https://getkirby.com). layout block plugin that renders a full-featured [Swiper 14](https://swiperjs.com/) carousel with a Panel editor, responsive WebP images, lazy loading, and LQIP blur-up placeholders.
 
@@ -17,10 +17,10 @@ Swiper ships pre-bundled with the plugin — no CDN, no npm, and no build step r
 ### Via Composer (recommended)
 
 ```bash
-composer require ianhobbs/kirby-swiper-block
+composer require ianhobbs/kirby-slider-block
 ```
 
-This installs to `site/plugins/kirby-swiper-block/` — not `vendor/` — via
+This installs to `site/plugins/kirby-slider-block/` — not `vendor/` — via
 [`getkirby/composer-installer`](https://github.com/getkirby/composer-installer), so Kirby
 auto-loads it.
 
@@ -29,14 +29,14 @@ auto-loads it.
 Clone into your site's `site/plugins/` directory:
 
 ```bash
-git clone https://github.com/ianhobbs/swiper-block site/plugins/kirby-swiper-block
+git clone https://github.com/ianhobbs/kirby-slider-block site/plugins/kirby-slider-block
 ```
 
 ---
 
 ## Zero-config setup
 
-No template changes needed. When a page contains a Swiper block, the snippet automatically injects Swiper and the plugin CSS **once per page load** — the first block to render claims the injection, so a page with several Swiper blocks down it still loads Swiper once. Everything is self-contained.
+No template changes needed. When a page contains a Slider block, the snippet automatically injects Swiper and the plugin CSS **once per page load** — the first block to render claims the injection, so a page with several Slider blocks down it still loads Swiper once. Everything is self-contained.
 
 The whole frontend is **two same-origin files** — `assets/dist/swiper-block.css` and `assets/dist/swiper-block.js` — each bundling Swiper 14.1.0 (MIT) with the block's own code. No CDN dependency, and **nothing to allow in a Content-Security-Policy**. See [Content-Security-Policy](#content-security-policy).
 
@@ -46,7 +46,7 @@ Only the Swiper modules the block can actually use are compiled in; the rest (cu
 
 Swiper 14 targets the last couple of years of evergreen browsers: **Chrome/Edge 110+,
 Safari 16.4+ (iOS 16.4+), Firefox 110+**. Sites that still need older browsers should stay on
-kirby-swiper-block **1.4.x**, which bundles Swiper 12.
+kirby-slider-block **1.4.x**, which bundles Swiper 12.
 
 If you prefer to control asset placement (e.g. move them to `<head>` for performance), see [Manual asset loading](#manual-asset-loading) below.
 
@@ -64,7 +64,7 @@ fields:
       - swiper
 ```
 
-> **One Swiper block per layout row.** Several **down** a page are fine and fully
+> **One Slider block per layout row.** Several **down** a page are fine and fully
 > independent; two in the *same* row are not — the second is skipped. See
 > [Using the block in a layout field](#using-the-block-in-a-layout-field).
 
@@ -185,9 +185,9 @@ Thumbs are generated on demand by Kirby's media manager and cached under `/media
 The block's normal home is a **layout field**, in a column of some fraction width. Two things
 follow from that.
 
-### One Swiper block per layout row
+### One Slider block per layout row
 
-**Only the first Swiper block in a layout row renders.** A second one in the same row — in
+**Only the first Slider block in a layout row renders.** A second one in the same row — in
 another column, or stacked in the same column — is skipped, leaving an HTML comment in its
 place. With `debug` on it also renders a visible note on the page, so the block doesn't just
 silently vanish while you're building.
@@ -215,7 +215,7 @@ full-width size below the breakpoint, the column fraction above it. The breakpoi
 
 ```php
 return [
-    'ianhobbs.kirby-swiper-block.stackBreakpoint' => '60rem',
+    'ianhobbs.kirby-slider-block.stackBreakpoint' => '60rem',
 ];
 ```
 
@@ -302,20 +302,20 @@ stop them being purged.
 By default the snippet injects the asset tags at the point the block is rendered in the page body. For performance-sensitive sites you may want to place them in `<head>` instead. Add this to your head snippet:
 
 ```php
-<link rel="stylesheet" href="<?= $kirby->plugin('ianhobbs/kirby-swiper-block')->asset('dist/swiper-block.css')->url() ?>">
+<link rel="stylesheet" href="<?= $kirby->plugin('ianhobbs/kirby-slider-block')->asset('dist/swiper-block.css')->url() ?>">
 ```
 
 And before `</body>`:
 
 ```php
-<script src="<?= $kirby->plugin('ianhobbs/kirby-swiper-block')->asset('dist/swiper-block.js')->url() ?>" defer></script>
+<script src="<?= $kirby->plugin('ianhobbs/kirby-slider-block')->asset('dist/swiper-block.js')->url() ?>" defer></script>
 ```
 
 Then suppress auto-injection in `site/config/config.php`:
 
 ```php
 return [
-    'ianhobbs.kirby-swiper-block.injectAssets' => false,
+    'ianhobbs.kirby-slider-block.injectAssets' => false,
 ];
 ```
 

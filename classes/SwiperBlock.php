@@ -6,7 +6,7 @@ use Kirby\Cms\Block;
 use Kirby\Cms\Structure;
 
 /**
- * Swiper block model
+ * Slider block model
  *
  * Centralises everything the snippet would otherwise compute inline: the Swiper
  * JS config object, the aspect-ratio CSS, the per-orientation thumb presets and
@@ -73,7 +73,7 @@ class SwiperBlock extends Block
      * request. Lives here, not as a `static` inside the snippet: Kirby renders
      * snippets through `F::loadIsolated()`, which `include`s the file afresh
      * every time, so a snippet-local static resets between blocks and a page
-     * with several Swiper blocks emitted the CDN tags once per block.
+     * with several Slider blocks emitted the CDN tags once per block.
      */
     protected static bool $assetsInjected = false;
 
@@ -214,7 +214,7 @@ class SwiperBlock extends Block
         }
 
         // Below the host layout's stacking breakpoint the column is full width.
-        $breakpoint = kirby()->option('ianhobbs.kirby-swiper-block.stackBreakpoint', '768px');
+        $breakpoint = kirby()->option('ianhobbs.kirby-slider-block.stackBreakpoint', '768px');
         $columnVw   = rtrim(rtrim(number_format($span / 12 * 100, 4, '.', ''), '0'), '.') . 'vw';
 
         return sprintf(
@@ -230,7 +230,7 @@ class SwiperBlock extends Block
     /**
      * Per-request cache of the layout scan, keyed by the parent field. Scanning
      * walks every layout, column and block, so it runs once per field however
-     * many Swiper blocks that field holds.
+     * many Slider blocks that field holds.
      *
      * @var array<int, array<string, array{span: int, firstInRow: bool}>>
      */
@@ -238,7 +238,7 @@ class SwiperBlock extends Block
 
     /**
      * Where this block sits in its layout field: the width of its column in
-     * twelfths, and whether it is the first Swiper block in its layout row.
+     * twelfths, and whether it is the first Slider block in its layout row.
      *
      * Kirby hands the block snippet nothing but the block, so we find the block
      * again from the other end — through the field it came from. A block in a
@@ -303,7 +303,7 @@ class SwiperBlock extends Block
     }
 
     /**
-     * Whether this block is a second (or third…) Swiper block in the same layout
+     * Whether this block is a second (or third…) Slider block in the same layout
      * row. One per row is the supported arrangement — several side by side fight
      * over the same drag/keyboard gestures and force each into a column too
      * narrow for the imagery. Blocks stacked down a page are fine and unlimited.

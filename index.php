@@ -4,7 +4,7 @@
 require_once __DIR__ . '/classes/SwiperBlock.php';
 
 /**
- * Kirby Swiper Block Plugin
+ * Kirby Slider Block Plugin
  *
  * A custom layout block that renders a full-featured Swiper 14 carousel
  * with server-side image cropping via Kirby thumb presets.
@@ -13,7 +13,7 @@ require_once __DIR__ . '/classes/SwiperBlock.php';
 use Kirby\Cms\App as Kirby;
 use IanHobbs\Swiper\SwiperBlock;
 
-Kirby::plugin('ianhobbs/kirby-swiper-block', [
+Kirby::plugin('ianhobbs/kirby-slider-block', [
 
     'version' => '1.5.1',
 

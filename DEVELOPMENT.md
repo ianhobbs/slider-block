@@ -1,4 +1,4 @@
-# Development Guide — kirby-swiper-block
+# Development Guide — kirby-slider-block
 
 ## How this repo is laid out
 
@@ -12,7 +12,7 @@ Kirby install, and the Pest suite. That folder is a normal Kirby project layout 
 into the plugin.
 
 ```text
-kirby-swiper-block/
+kirby-slider-block/
 ├── index.php  index.js  index.css     ← plugin entry + built Panel bundle
 ├── assets/dist/                      ← built frontend bundle (committed)
 ├── assets/  blueprints/  classes/  snippets/
@@ -45,8 +45,8 @@ never receive it.
 ## Setup
 
 ```bash
-git clone https://github.com/ianhobbs/swiper-block.git kirby-swiper-block
-cd kirby-swiper-block/dev
+git clone https://github.com/ianhobbs/kirby-slider-block.git kirby-slider-block
+cd kirby-slider-block/dev
 composer install
 ```
 
@@ -178,7 +178,7 @@ Kirby's `Plugin::version()` reads from the plugin's `composer.json` or Composer'
 `installed.json`. We intentionally omit a `"version"` field from `composer.json` (Packagist
 reads versions from git tags only), so `Plugin::version()` returns `null` in development.
 
-In production — when someone installs via `composer require ianhobbs/kirby-swiper-block` —
+In production — when someone installs via `composer require ianhobbs/kirby-slider-block` —
 Composer writes the resolved tag version to `installed.json` and the Panel displays it.
 
 Tests assert the version via `$plugin->extends()['version']`, which reads the `'version'` key
@@ -202,14 +202,14 @@ Open `http://localhost:8000/panel` and create an account.
 
 On a fresh clone the frontend returns 404 until a page exists — `content/` is gitignored, so
 no page ships with the repo. In the Panel, add a page from the site's Pages section (template
-**Dev Home**), then add a Swiper block and upload images. `/` renders it from then on.
+**Dev Home**), then add a Slider block and upload images. `/` renders it from then on.
 
 Content is deliberately not tracked: Kirby rewrites the page's `.txt` on every Panel edit, so
 a committed seed page would show as permanently modified — and uploaded images would follow it
 into the repo.
 
 What's tracked: `index.php`, `site/blueprints/`, `site/templates/`, `site/config/` and the
-`site/plugins/kirby-swiper-block` symlink. What never is: `content/`, `media/`,
+`site/plugins/kirby-slider-block` symlink. What never is: `content/`, `media/`,
 `site/accounts/`, `site/sessions/`, `site/cache/` — your images and Panel credentials stay on
 your machine.
 
@@ -225,7 +225,7 @@ URL.
 
 ### Visual checklist
 
-- [ ] Swiper Block appears in the block picker, with its custom icon
+- [ ] Slider Block appears in the block picker, with its custom icon
 - [ ] The edit drawer opens with all five tabs (Slides, Layout, Animation, Controls, Touch & Input)
 - [ ] A slide with image, heading, subtext and CTA saves and renders
 - [ ] Collapsed block preview shows slide count, height and effect

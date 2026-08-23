@@ -104,7 +104,7 @@ test('imgSizes narrows with the column and keeps the stacked size first', functi
 
 test('the stacking breakpoint is configurable', function () {
     $default = kirby();
-    $default->clone(['options' => ['ianhobbs.kirby-swiper-block.stackBreakpoint' => '60rem']]);
+    $default->clone(['options' => ['ianhobbs.kirby-slider-block.stackBreakpoint' => '60rem']]);
     restore_error_handler();
     restore_exception_handler();
 

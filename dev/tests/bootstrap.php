@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Kirby Swiper Block — Test Bootstrap
+ * Kirby Slider Block — Test Bootstrap
  *
  * Boots a minimal Kirby instance with the plugin loaded directly, using
  * fixture roots so no real site is required. Everything Composer installs

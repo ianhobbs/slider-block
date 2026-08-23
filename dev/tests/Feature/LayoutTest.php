@@ -48,7 +48,7 @@ test('the block blueprint resolves through the host field, tabs and all', functi
     $swiper    = $fieldsets->get('swiper');
 
     expect($swiper)->not->toBeNull();
-    expect($swiper->name())->toBe('Swiper Block');
+    expect($swiper->name())->toBe('Slider Block');
     expect(array_keys($swiper->tabs()))->toBe(['slides', 'layout', 'animation', 'controls', 'touch']);
 });
 
@@ -104,7 +104,7 @@ test('a second block in the same row is skipped, whichever column it is in', fun
     expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(1);
     expect($html)->toContain('Left')
                  ->not->toContain('Right')
-                 ->toContain('a layout row can hold only one Swiper block');
+                 ->toContain('a layout row can hold only one Slider block');
 });
 
 test('two blocks stacked in one column: only the first renders', function () {
@@ -154,7 +154,7 @@ test('one block per row, several rows down a page: all of them render', function
 
     expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(3);
     expect($html)->toContain('Hero')->toContain('Feature')->toContain('Gallery')
-                 ->not->toContain('only one Swiper block');
+                 ->not->toContain('only one Slider block');
 });
 
 test('blocks down a page get distinct ids so their configs never collide', function () {
@@ -266,7 +266,7 @@ test('the injectAssets option suppresses the tags without spending the claim', f
         restore_exception_handler();
     };
 
-    $reboot(['ianhobbs.kirby-swiper-block.injectAssets' => false]);
+    $reboot(['ianhobbs.kirby-slider-block.injectAssets' => false]);
     expect($render())->not->toContain('dist/swiper-block.js');
 
     // Turning injection back on still works — an opted-out render must not have
@@ -284,7 +284,7 @@ test('the whole frontend ships as two same-origin files', function () {
     // strict policy allows `style-src 'self' 'unsafe-inline'` with no nonce and
     // no strict-dynamic, so a CDN stylesheet has nothing to fall back on.
     expect($html)->not->toContain('cdn.jsdelivr.net');
-    expect($html)->toContain('/media/plugins/ianhobbs/kirby-swiper-block/');
+    expect($html)->toContain('/media/plugins/ianhobbs/kirby-slider-block/');
 
     expect(substr_count($html, '<link rel="stylesheet"'))->toBe(1);
     expect(substr_count($html, '<script src='))->toBe(1);
