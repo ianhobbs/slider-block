@@ -237,3 +237,38 @@ function renderLayout(Kirby\Cms\Layouts $layouts): string
 
     return $html;
 }
+
+/**
+ * A one-block row whose slides all use the fixture image (slide.jpg, 1000x600).
+ *
+ * The image tests need a real master: every ladder is capped against the file's
+ * true width, and the `<picture>` markup only renders when a slide resolves to
+ * a file. Returns a row in makeLayoutRows() format so the block keeps a parent
+ * field, which is what lets `image()->toFiles()` resolve against page('home').
+ */
+function swiperImageRow(int $slides = 1, array $content = [], string $width = '1/1'): array
+{
+    $built = [];
+
+    for ($i = 1; $i <= $slides; $i++) {
+        $built[] = [
+            'heading'          => 'Slide ' . $i,
+            'image'            => ['slide.jpg'],
+            'subtext'          => '',
+            'link'             => '',
+            'link_text'        => '',
+            'content_position' => 'center',
+        ];
+    }
+
+    return [[
+        'width'  => $width,
+        'blocks' => [$content + ['slides' => $built]],
+    ]];
+}
+
+/** The rendered HTML of a one-block row built by swiperImageRow(). */
+function renderImageRow(int $slides = 1, array $content = []): string
+{
+    return renderBlock(firstSwiper(makeLayoutRows([swiperImageRow($slides, $content)])));
+}

@@ -155,13 +155,30 @@ same block without either being re-framed. Set a **Fixed Height** (or a custom f
 height) and the box stops following the image — the image then fills that box and is
 centre-cropped on whichever axis overflows.
 
-What the block generates per slide, all **WebP**:
+What the block generates per slide:
 
 | Purpose | Output |
 |---|---|
-| `srcset` | Width-only variants at 640 / 900 / 1400 / 1920 px (quality 80–85) |
-| `<img src>` fallback | Uncropped 1920 px (quality 85) |
-| LQIP placeholder | 48 px wide, blurred, quality 30 |
+| `<source type="image/avif">` | Width-only variants at 640 / 900 / 1200 / 1600 / 1920 px, quality 65 |
+| `<img srcset>` | The same widths in **WebP**, quality 80 |
+| `<img src>` fallback | The middle rung of the WebP ladder |
+| LQIP placeholder | 48 px wide, blurred, quality 30, WebP |
+
+Each slide is a `<picture>`. Source order is preference order — the browser takes the first
+`<source>` whose type it can decode and never looks at the rest — so AVIF precedes WebP, and
+WebP rides on the `<img>` itself rather than as a `<source>` that would shadow it.
+
+**Every ladder is capped at the master image's real width.** Kirby writes each `srcset`
+descriptor from the array key verbatim and never measures the thumb it just made, while the
+darkroom refuses to upscale. So on a 1000 px master an uncapped ladder would emit `1200w`,
+`1600w` and `1920w` URLs all serving the same 1000 px file — three extra thumbs, and three
+claims that can only push the browser towards a heavier candidate than it needs. The block
+instead re-labels the first oversized step with the master's true width and drops the rest.
+
+The `<img src>` is a **middle** rung, not the top one. That attribute is what a client
+ignoring `srcset` downloads, so pointing it at the 1920 px step served the heaviest file on
+the page to the least capable reader. The middle step is already on the ladder, so it costs
+no extra thumb.
 
 Further behaviour worth knowing:
 
@@ -173,8 +190,11 @@ Further behaviour worth knowing:
   the full designated height — with no letterbox bars; the overflowing axis is centre-cropped.
   The blurred LQIP sits behind it, also `object-fit: cover`, so the placeholder and the final
   image are framed identically through the fade-in.
-- The first slide loads with `loading="eager"` / `decoding="sync"`; every later slide is
-  `lazy` / `async`.
+- The first slide loads with `loading="eager"` / `decoding="sync"` / `fetchpriority="high"`;
+  every later slide is `lazy` / `async` / `auto`. **The LQIP placeholder is deferred with it** —
+  it is a request of its own, so an eager placeholder per slide meant one offscreen image per
+  slide even when the sharp image was already deferred. In `loop` mode Swiper clones slides at
+  runtime; the clones inherit whatever attributes their originals carry.
 
 Thumbs are generated on demand by Kirby's media manager and cached under `/media`.
 
@@ -218,6 +238,11 @@ return [
     'ianhobbs.kirby-slider-block.stackBreakpoint' => '60rem',
 ];
 ```
+
+Write plugin options with the **dotted key**, as above. Kirby stores plugin option defaults
+under their flat dotted name, and the nested form (`'ianhobbs' => ['kirby-slider-block' => …]`)
+never reaches them — it is silently ignored, defaults intact. This applies to every option
+below.
 
 **Column Width** (Layout tab) overrides the detection. Leave it on **Auto** unless the block
 sits inside a wrapper of your own that is narrower than its column — Auto can only see the
@@ -294,6 +319,78 @@ If you use Tailwind with a content scan, the class names come from this plugin's
 than your own templates, so add the plugin to your `content` / `@source` paths (or safelist
 `text-xs` through `text-3xl` plus `font-sans` / `font-body` / `font-serif` / `font-mono`) to
 stop them being purged.
+
+---
+
+## Options
+
+Every option goes in `site/config/config.php` under its **dotted key** — see the note under
+[Column-aware image sizes](#column-aware-image-sizes) for why the nested form does not work.
+
+| Option | Default | What it does |
+|---|---|---|
+| `injectAssets` | `true` | Inject the CSS/JS tags at render time. See [Manual asset loading](#manual-asset-loading). |
+| `stackBreakpoint` | `'768px'` | Where your layout rows stack, for the `sizes` hint. |
+| `formats` | `['avif' => true, 'webp' => true]` | Formats offered per slide, in `<source>` preference order. |
+| `fallbackFormat` | `'webp'` | The format on the `<img>` itself. |
+| `srcsets` | `[]` | Native mode: point a format at a `thumbs.srcsets` ladder you already define. |
+| `fullWidthSizes` | `null` | Replaces `sizes` for full-span blocks. |
+
+### Turning AVIF off
+
+```php
+return [
+    'ianhobbs.kirby-slider-block.formats' => ['avif' => false],
+];
+```
+
+`formats` is a **map**, not a list, and deliberately so. Kirby merges plugin option defaults
+with your config through `A::merge`, which merges associative arrays by key but *appends*
+numeric lists — a list-valued option could only ever be added to, never reduced. For the same
+reason `fallbackFormat` is named rather than inferred from position: adding a format to the
+map would otherwise silently promote it to the `<img>`, which is the one place the most
+widely decodable format belongs.
+
+### Reusing ladders you already have
+
+In native mode, rather than emitting its own widths the block can read ladders the site
+already defines — one width ramp across the whole site instead of two:
+
+```php
+return [
+    'thumbs' => [
+        'srcsets' => [
+            'avif' => [ /* '400w' => ['width' => 400, 'format' => 'avif', 'quality' => 75], … */ ],
+            'webp' => [ /* … */ ],
+        ],
+    ],
+    'ianhobbs.kirby-slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
+];
+```
+
+Whatever ladder is used, the block still caps it at each master's real width.
+
+In **fixed-ratio** modes the block reads the cropped per-orientation srcsets
+`swiper-horiz` / `swiper-vert`. Define `swiper-horiz-avif` and `swiper-vert-avif` and it picks
+them up with no option at all; leave them undefined and only the fallback format resolves, to
+the plain named srcset, producing a single-format `<img>`.
+
+### A `sizes` the plugin cannot work out
+
+The block assumes a full-span block is `100vw` wide. If your layout container is narrower than
+the viewport, tell it so — the string replaces the whole attribute:
+
+```php
+return [
+    'ianhobbs.kirby-slider-block.fullWidthSizes'
+        => '(min-width: 780px) calc(816px + (100vw - 816px) * 0.3), calc(100vw - 2.5rem)',
+];
+```
+
+Verbatim, with **Slides Visible** *not* divided into it — a media-condition list cannot go
+inside `calc()`, so if you show several slides at once, account for that in the string
+yourself. Part-width columns are unaffected: their `sizes` is already derived from the column
+fraction.
 
 ---
 

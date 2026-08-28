@@ -324,3 +324,80 @@ test('default slide effect does not add modifier class', function () {
     ]));
     expect($html)->not->toContain('swiper-block--slide');
 });
+
+// ── Slide images: picture, ladder, loading ────────────────────────────────────
+
+test('each slide is a picture with avif first and webp on the img', function () {
+    $html = renderImageRow();
+
+    // Source order IS preference order — the browser takes the first type it
+    // decodes and never looks further, so avif has to precede webp.
+    expect($html)->toContain('<picture>');
+    expect($html)->toContain('type="image/avif"');
+
+    // webp is the fallback format, so it rides on the <img> rather than
+    // appearing as a <source> that would shadow it.
+    expect($html)->not->toContain('type="image/webp"');
+    expect($html)->toContain('.webp 640w');
+
+    // A <source> ignores the sizes on the <img> below it, so it carries its own.
+    expect(substr_count($html, 'sizes="100vw"'))->toBe(2);
+});
+
+test('no srcset descriptor claims more than the master image holds', function () {
+    // The fixture is 1000x600 and the built-in ladder runs to 1920. Kirby writes
+    // descriptors from the array key and the darkroom refuses to upscale, so an
+    // uncapped ladder would offer 1200w/1600w/1920w URLs all serving the same
+    // 1000px file.
+    $html = renderImageRow();
+
+    expect($html)->toContain('1000w');
+    expect($html)->not->toContain('1200w');
+    expect($html)->not->toContain('1600w');
+    expect($html)->not->toContain('1920w');
+
+    // The <img src> fallback is the middle rung of what survived the cap.
+    expect($html)->toContain('slide-900x-q80.webp"');
+});
+
+test('only the first slide loads eagerly, placeholder included', function () {
+    // Slides 2+ are translated out of the viewport at load. Lighthouse counts
+    // the LQIP as its own request, so leaving that eager cost one offscreen
+    // image per slide even when the sharp image was deferred.
+    $html = renderImageRow(3);
+
+    preg_match_all('/loading="(\w+)"/', $html, $loading);
+    expect($loading[1])->toBe(['eager', 'eager', 'lazy', 'lazy', 'lazy', 'lazy']);
+
+    // Slide 1 is the LCP candidate; the rest must not compete for bandwidth.
+    preg_match_all('/fetchpriority="(\w+)"/', $html, $priority);
+    expect($priority[1])->toBe(['high', 'auto', 'auto']);
+
+    // Only the first sharp image blocks on decode.
+    preg_match_all('/decoding="(\w+)"/', $html, $decoding);
+    expect($decoding[1])->toBe(['async', 'sync', 'async', 'async', 'async', 'async']);
+});
+
+test('switching avif off returns the markup to a single-format img', function () {
+    // Cloning the App is how an option override is applied mid-suite; each
+    // clone registers its own error handlers, so they are unwound afterwards
+    // or PHPUnit marks the test risky for leaking global state.
+    $kirby = kirby();
+
+    try {
+        $kirby->clone(['options' => ['ianhobbs.kirby-slider-block.formats' => ['avif' => false]]]);
+
+        $html = renderImageRow();
+
+        expect($html)->not->toContain('<source');
+        expect($html)->not->toContain('.avif');
+        expect($html)->toContain('.webp 640w');
+    } finally {
+        $kirby->clone();
+
+        restore_error_handler();
+        restore_exception_handler();
+        restore_error_handler();
+        restore_exception_handler();
+    }
+});

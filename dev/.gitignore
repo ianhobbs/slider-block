@@ -22,3 +22,6 @@ composer.lock
 # The visual site's scaffold (index.php, site/blueprints, site/templates,
 # site/config and the plugin symlink) IS tracked, so a fresh clone only needs:
 #   cd dev && composer install && composer start
+
+# Thumbs generated while the suite runs — regenerated, not tracked.
+/tests/fixtures/media/

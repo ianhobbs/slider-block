@@ -224,19 +224,81 @@ test('native mode builds thumbs inline so no site config is required', function 
     $block = makeBlock();
 
     // Width-only srcset — no crop, so the source ratio survives.
-    $srcset = $block->srcsetName();
-    expect($srcset)->toBeArray()->toHaveKeys(['640w', '900w', '1400w', '1920w']);
+    $srcset = $block->fallbackSrcset(PHP_INT_MAX);
+    expect($srcset)->toBeArray()->toHaveKeys(['640w', '900w', '1200w', '1600w', '1920w']);
     expect($srcset['1920w'])->not->toHaveKey('height');
     expect($srcset['1920w']['format'])->toBe('webp');
 
     // LQIP is width-only too, for the same reason.
     expect($block->lqipPreset())->toBeArray()->toHaveKey('blur');
     expect($block->lqipPreset())->not->toHaveKey('height');
+});
 
-    // <img src> fallback is an uncropped 1920 — no named srcset lookup.
-    expect($block->baseThumbOptions())->toBe([
-        'width' => 1920, 'format' => 'webp', 'quality' => 85,
+test('capLadder relabels the first oversized step and drops the rest', function () {
+    $ladder = [
+        '640w'  => ['width' =>  640, 'format' => 'webp'],
+        '900w'  => ['width' =>  900, 'format' => 'webp'],
+        '1200w' => ['width' => 1200, 'format' => 'webp'],
+        '1600w' => ['width' => 1600, 'format' => 'webp'],
+    ];
+
+    // Kirby writes the descriptor from the array key and never measures the
+    // thumb, while the darkroom refuses to upscale — so past the master every
+    // step would be the same file under a wider claim.
+    $capped = SwiperBlock::capLadder($ladder, 1000);
+
+    expect(array_keys($capped))->toBe(['640w', '900w', '1000w']);
+    expect($capped['1000w']['width'])->toBe(1000);
+
+    // The replaced step's other options survive the relabelling.
+    expect($capped['1000w']['format'])->toBe('webp');
+
+    // A master wider than the whole ladder leaves it untouched.
+    expect(array_keys(SwiperBlock::capLadder($ladder, 4000)))
+        ->toBe(['640w', '900w', '1200w', '1600w']);
+
+    // An exact match is not a cap — it passes through on its own key.
+    expect(array_keys(SwiperBlock::capLadder($ladder, 1200)))
+        ->toBe(['640w', '900w', '1200w']);
+});
+
+test('the img src fallback is a middle rung, not the heaviest file', function () {
+    // <img src> is what a client ignoring srcset downloads, so pointing it at
+    // the top of the ladder served the heaviest file to the least capable
+    // reader. The middle step is already on the ladder — no extra thumb.
+    expect(makeBlock()->baseThumbOptions(PHP_INT_MAX))->toBe([
+        'width' => 1200, 'format' => 'webp', 'quality' => 80,
     ]);
+
+    // Capped first, so the rung is chosen from what the master can actually
+    // deliver: 640/900/1000 for a 1000px master, middle is 900.
+    expect(makeBlock()->baseThumbOptions(1000)['width'])->toBe(900);
+});
+
+test('avif is offered as a source and webp rides on the img itself', function () {
+    $block = makeBlock();
+
+    expect($block->formats())->toBe(['avif', 'webp']);
+    expect($block->fallbackFormat())->toBe('webp');
+
+    // The fallback format is deliberately absent from the sources: it is
+    // already on the <img>, and a <source> for it would shadow that.
+    $sources = $block->srcsets(PHP_INT_MAX);
+    expect(array_keys($sources))->toBe(['image/avif']);
+    expect($sources['image/avif']['1920w']['format'])->toBe('avif');
+});
+
+test('a fixed-ratio block reads the named per-orientation srcset', function () {
+    // The site defines no swiper-horiz/-vert here, so there is nothing to
+    // resolve — the model says so rather than inventing a ladder.
+    $block = makeBlock(['aspect_ratio' => '16/9']);
+
+    expect($block->fallbackSrcset(PHP_INT_MAX))->toBeNull();
+    expect($block->baseThumbOptions(PHP_INT_MAX))->toBeNull();
+
+    // And no <source> either: a per-format ladder is opt-in by defining
+    // swiper-horiz-avif, so an unconfigured site gets a plain <img>.
+    expect($block->srcsets(PHP_INT_MAX))->toBe([]);
 });
 
 // ── Caption typography & colour ───────────────────────────────────────────────

@@ -139,20 +139,227 @@ class SwiperBlock extends Block
     }
 
     /**
-     * Responsive srcset. Fixed-ratio modes use the named, cropped per-orientation
-     * srcset from site config. Native mode returns a width-only set inline so the
-     * source ratio survives — no config, no crop.
+     * Widths of the built-in native ladder, used when the site names no srcset
+     * of its own. The old set jumped 900 -> 1400 (1.56x), and that gap straddled
+     * the width a full-width block actually renders at, so most viewports
+     * rounded up to 1400 and paid for the whole jump.
+     */
+    public const NATIVE_WIDTHS = [640, 900, 1200, 1600, 1920];
+
+    /** Encoder quality per format for the built-in ladder. */
+    public const FORMAT_QUALITY = ['avif' => 65, 'webp' => 80];
+
+    /** Formats offered by default, in `<source>` preference order. */
+    public const DEFAULT_FORMATS = ['avif' => true, 'webp' => true];
+
+    /**
+     * Image formats to offer, in `<source>` preference order — the browser takes
+     * the first type it can decode and never looks further, so avif must precede
+     * webp. The LAST enabled entry is the fallback: it supplies the plain
+     * `<img srcset>` and the `<img src>`, which is what a client that
+     * understands neither `<picture>` nor srcset ends up reading.
+     *
+     * The option is a MAP (`['avif' => false]`), not a list, on purpose: Kirby
+     * merges plugin option defaults with the site's config through `A::merge`,
+     * which merges associative arrays by key but *appends* numeric lists. A
+     * list-valued option could therefore only ever be added to, never reduced.
+     * A plain list is still accepted here, for a site that sets the option
+     * before any default exists.
+     *
+     * @return list<string>
+     */
+    public function formats(): array
+    {
+        $option  = kirby()->option('ianhobbs.kirby-slider-block.formats', self::DEFAULT_FORMATS);
+        $enabled = [];
+
+        foreach ((array) $option as $key => $value) {
+            // List entry: the value is the format name. `??=` so a later
+            // `['avif' => false]` from the site's config still wins over the
+            // default list it was merged into.
+            if (is_int($key)) {
+                if (is_string($value)) {
+                    $enabled[$value] ??= true;
+                }
+                continue;
+            }
+
+            $enabled[$key] = (bool) $value;
+        }
+
+        $formats = array_values(array_keys(array_filter($enabled)));
+
+        return $formats ?: ['webp'];
+    }
+
+    /**
+     * The format backing `<img src>` and `<img srcset>` — what a client that
+     * reads neither `<picture>` nor srcset ends up with, so it must be the most
+     * widely decodable format on offer, not the most efficient one.
+     *
+     * Named rather than inferred from position: option maps merge by key and
+     * append unknown keys, so adding a format would otherwise silently promote
+     * it to the fallback. Falls back to the last offered format when the named
+     * one has been switched off.
+     */
+    public function fallbackFormat(): string
+    {
+        $formats = $this->formats();
+        $named   = kirby()->option('ianhobbs.kirby-slider-block.fallbackFormat', 'webp');
+
+        if (is_string($named) && in_array($named, $formats, true)) {
+            return $named;
+        }
+
+        return end($formats);
+    }
+
+    /**
+     * Cap a ladder's descriptors at the master image's real width.
+     *
+     * Kirby writes each srcset descriptor from the array key verbatim
+     * (`FileModifications::srcset()`) and never measures the thumb it just made,
+     * while the darkroom refuses to upscale. So a 1200px master run through a
+     * ladder ending at 1920 emits `...1400w, ...1920w` pointing at the same
+     * 1200px file — two claims that can only make the browser pick a heavier
+     * candidate than it needs, and two extra thumbs to generate and store.
+     *
+     * Steps at or under the master pass through. The first step past it is
+     * re-labelled with the master's true width; the rest are dropped, since each
+     * would be that same non-upscaled file under a wider claim.
+     */
+    public static function capLadder(array $steps, int $masterWidth): array
+    {
+        $out    = [];
+        $capped = false;
+
+        foreach ($steps as $options) {
+            $width = is_array($options) ? ($options['width'] ?? null) : $options;
+
+            if ($width === null) {
+                continue;
+            }
+
+            if ($width <= $masterWidth) {
+                $out[$width . 'w'] = $options;
+                continue;
+            }
+
+            if ($capped === false) {
+                // ['width' => $masterWidth] first: PHP's + keeps the LEFT
+                // operand's keys, so the width is overridden while the format
+                // and quality of the step being replaced survive.
+                $out[$masterWidth . 'w'] = ['width' => $masterWidth] + (array) $options;
+                $capped = true;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The uncapped ladder for one format, as a Kirby srcset array.
+     *
+     * Native mode: a site can point each format at a ladder it already defines,
+     * through the `srcsets` option (`['avif' => 'avif']` reads
+     * `thumbs.srcsets.avif`), which keeps one ramp on the site instead of two.
+     * Otherwise the built-in widths above are emitted in that format.
+     *
+     * Fixed-ratio modes: the cropped per-orientation srcset from site config.
+     * `swiper-horiz-avif` is used when the site defines it, so multiple formats
+     * need no plugin option at all; when it doesn't, only the fallback format
+     * resolves — to the plain `swiper-horiz` — and the markup is what it was
+     * before 1.7.0.
+     */
+    protected function ladder(string $format): array
+    {
+        if ($this->isNative()) {
+            $named = kirby()->option('ianhobbs.kirby-slider-block.srcsets', [])[$format] ?? null;
+
+            if ($named !== null) {
+                return kirby()->option('thumbs.srcsets.' . $named, []);
+            }
+
+            $ladder = [];
+
+            foreach (self::NATIVE_WIDTHS as $width) {
+                $ladder[$width . 'w'] = [
+                    'width'   => $width,
+                    'format'  => $format,
+                    'quality' => self::FORMAT_QUALITY[$format] ?? 80,
+                ];
+            }
+
+            return $ladder;
+        }
+
+        $base   = $this->orientationValue() === 'vertical' ? 'swiper-vert' : 'swiper-horiz';
+        $ladder = kirby()->option('thumbs.srcsets.' . $base . '-' . $format, []);
+
+        if ($ladder !== []) {
+            return $ladder;
+        }
+
+        // No per-format ladder: only the fallback format may claim the plain
+        // named srcset, or every <source> would serve the same file and the
+        // browser would stop at the first one.
+        return $format === $this->fallbackFormat()
+            ? kirby()->option('thumbs.srcsets.' . $base, [])
+            : [];
+    }
+
+    /**
+     * `<source>` ladders keyed by MIME type, in preference order, each capped to
+     * the master's width. The fallback format is excluded — it rides on the
+     * `<img>` itself, so a `<source>` for it would only duplicate the fallback
+     * and shadow it.
+     *
+     * @return array<string, array>
+     */
+    public function srcsets(int $masterWidth): array
+    {
+        $out      = [];
+        $fallback = $this->fallbackFormat();
+
+        foreach ($this->formats() as $format) {
+            if ($format === $fallback) {
+                continue;
+            }
+
+            $ladder = $this->ladder($format);
+
+            if ($ladder !== []) {
+                $out['image/' . $format] = self::capLadder($ladder, $masterWidth);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The plain `<img srcset>` — the fallback format's ladder, capped. Null when
+     * the site has defined no srcset for a fixed-ratio mode.
+     */
+    public function fallbackSrcset(int $masterWidth): array|null
+    {
+        $ladder = $this->ladder($this->fallbackFormat());
+
+        return $ladder === [] ? null : self::capLadder($ladder, $masterWidth);
+    }
+
+    /**
+     * The fixed-ratio srcset name, or the native ladder as an array.
+     *
+     * @deprecated 1.7.0 Use srcsets() and fallbackSrcset(), which cap the
+     *             descriptors at the master width and carry every offered
+     *             format. Kept so snippets written against 1.6 keep rendering.
      */
     public function srcsetName(): string|array
     {
         if ($this->isNative()) {
-            return [
-                '640w'  => ['width' =>  640, 'format' => 'webp', 'quality' => 80],
-                '900w'  => ['width' =>  900, 'format' => 'webp', 'quality' => 82],
-                '1400w' => ['width' => 1400, 'format' => 'webp', 'quality' => 85],
-                '1920w' => ['width' => 1920, 'format' => 'webp', 'quality' => 85],
-            ];
+            return $this->ladder($this->fallbackFormat());
         }
+
         return $this->orientationValue() === 'vertical' ? 'swiper-vert' : 'swiper-horiz';
     }
 
@@ -166,17 +373,27 @@ class SwiperBlock extends Block
     }
 
     /**
-     * Largest thumb — the non-srcset `<img src>` fallback. Native uses a
-     * width-only 1920 (uncropped); fixed modes use the largest entry of the
-     * named srcset. Null when the site hasn't defined that srcset.
+     * The `<img src>` thumb — a MIDDLE rung of the fallback ladder, not the top.
+     *
+     * That attribute is what a client ignoring srcset downloads, so pointing it
+     * at the 1920 step (as every release before 1.7.0 did) served the heaviest
+     * file on the page to the least capable reader. The middle step is already
+     * on the ladder, so it costs no extra thumb.
+     *
+     * Null when the site has defined no srcset for a fixed-ratio mode.
      */
-    public function baseThumbOptions(): array|null
+    public function baseThumbOptions(int $masterWidth = PHP_INT_MAX): array|null
     {
-        if ($this->isNative()) {
-            return ['width' => 1920, 'format' => 'webp', 'quality' => 85];
+        $ladder = $this->fallbackSrcset($masterWidth);
+
+        if ($ladder === null || $ladder === []) {
+            return null;
         }
-        $srcset = kirby()->option('thumbs.srcsets.' . $this->srcsetName(), []);
-        return $srcset ? end($srcset) : null;
+
+        $steps = array_values($ladder);
+        $step  = $steps[intdiv(count($steps) - 1, 2)];
+
+        return is_array($step) ? $step : ['width' => $step];
     }
 
     /**
@@ -210,7 +427,12 @@ class SwiperBlock extends Block
         $span = $this->columnSpan();
 
         if ($span >= 12) {
-            return $perSlide('100vw');
+            // How wide a full-span block actually is depends on the host
+            // layout's container, which the plugin cannot see. A site that has
+            // measured its own can hand over a finished `sizes` string.
+            $full = kirby()->option('ianhobbs.kirby-slider-block.fullWidthSizes');
+
+            return is_string($full) && $full !== '' ? $full : $perSlide('100vw');
         }
 
         // Below the host layout's stacking breakpoint the column is full width.

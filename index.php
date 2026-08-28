@@ -15,7 +15,7 @@ use IanHobbs\Swiper\SwiperBlock;
 
 Kirby::plugin('ianhobbs/kirby-slider-block', [
 
-    'version' => '1.6.0',
+    'version' => '1.7.0',
 
     // Set injectAssets to false to skip the automatic asset injection entirely
     // (e.g. when Swiper is already bundled/loaded globally by the site).
@@ -25,6 +25,35 @@ Kirby::plugin('ianhobbs/kirby-slider-block', [
     // from the site's own origin, so a strict CSP needs no extra hosts.
     'options' => [
         'injectAssets' => true,
+
+        // Image formats offered per slide, in <source> preference order. The
+        // last enabled one is the fallback: it supplies <img srcset> and
+        // <img src>. Set ['avif' => false] to emit a plain webp <img>, as
+        // releases before 1.7.0 did.
+        //
+        // A map rather than a list because Kirby merges plugin defaults with
+        // site config by key for associative arrays but APPENDS numeric lists,
+        // so a list option could never be reduced by a site — only added to.
+        'formats' => SwiperBlock::DEFAULT_FORMATS,
+
+        // The format on the <img> itself, read by clients that understand
+        // neither <picture> nor srcset — so the widely decodable one, not the
+        // most efficient. Ignored when switched off in `formats`, in which case
+        // the last enabled format takes over.
+        'fallbackFormat' => 'webp',
+
+        // Native mode only: point a format at a srcset the site already
+        // defines, e.g. ['avif' => 'avif'] reads thumbs.srcsets.avif. Keeps one
+        // width ramp on the site instead of two. Empty = built-in ladder.
+        // (Fixed-ratio modes need no option — they pick up
+        // thumbs.srcsets.swiper-horiz-avif and -vert-avif when those exist.)
+        'srcsets' => [],
+
+        // Replaces the whole `sizes` attribute for full-span blocks. The plugin
+        // assumes a full-span block is 100vw wide; a site whose container is
+        // narrower knows better and can say so. Verbatim — slidesPerView is not
+        // divided into it, because a media-condition list cannot go in calc().
+        'fullWidthSizes' => null,
     ],
 
     'icons' => [

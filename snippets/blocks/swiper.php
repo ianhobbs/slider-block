@@ -57,11 +57,9 @@ if (kirby()->option('ianhobbs.kirby-slider-block.injectAssets', true) && \IanHob
 }
 
 // Per-slide image params — resolved once; identical for every slide in the block.
-$effect           = $block->effectName();
-$srcsetName       = $block->srcsetName();
-$lqipPreset       = $block->lqipPreset();
-$baseThumbOptions = $block->baseThumbOptions();
-$imgSizes         = $block->imgSizes();
+$effect     = $block->effectName();
+$lqipPreset = $block->lqipPreset();
+$imgSizes   = $block->imgSizes();
 
 // Caption typography — block-level, so every slide shares one scale. Emitted as
 // Tailwind class names; swiper-block.css carries a :where() fallback for sites
@@ -98,11 +96,25 @@ $captionFont      = $block->captionFontClass();
       $imageField = $slide->image()->toFiles()->first();
 
       if ($imageField) {
-          $lqip    = $imageField->thumb($lqipPreset);
-          $base    = $baseThumbOptions ? $imageField->thumb($baseThumbOptions) : $imageField;
-          $srcset  = $imageField->srcset($srcsetName);
-          $altText = $imageField->alt()->or($slide->heading())->value();
+          // Every ladder is capped to this master's real width — see
+          // SwiperBlock::capLadder(). Kirby writes each srcset descriptor from
+          // the array key and never measures the thumb it made, so an uncapped
+          // ladder promises widths the file cannot deliver.
+          $master   = $imageField->width();
+          $sources  = $block->srcsets($master);
+          $ladder   = $block->fallbackSrcset($master);
+          $srcset   = $ladder ? $imageField->srcset($ladder) : null;
+          $baseOpts = $block->baseThumbOptions($master);
+          $base     = $baseOpts ? $imageField->thumb($baseOpts) : $imageField;
+          $lqip     = $imageField->thumb($lqipPreset);
+          $altText  = $imageField->alt()->or($slide->heading())->value();
       }
+
+      // Only the first slide is on screen at load; the rest are translated out
+      // of the viewport, so they defer. This governs the LQIP as much as the
+      // sharp image — an eager placeholder per slide is still a request per
+      // slide, which is what Lighthouse counts.
+      $isFirst = $index === 1;
 
       $position     = $slide->content_position()->or('center')->value();
       $positionY    = \IanHobbs\Swiper\SwiperBlock::verticalPosition($slide->content_position_y()->value());
@@ -126,19 +138,35 @@ $captionFont      = $block->captionFontClass();
           height="<?= $lqip->height() ?>"
           alt=""
           aria-hidden="true"
+          loading="<?= $isFirst ? 'eager' : 'lazy' ?>"
+          decoding="async"
         >
 
-        <img
-          class="swiper-slide__img"
-          src="<?= $base->url() ?>"
-          srcset="<?= $srcset ?>"
-          sizes="<?= $imgSizes ?>"
-          width="<?= $base->width() ?>"
-          height="<?= $base->height() ?>"
-          alt="<?= htmlspecialchars($altText, ENT_QUOTES, 'UTF-8') ?>"
-          loading="<?= $index === 1 ? 'eager' : 'lazy' ?>"
-          decoding="<?= $index === 1 ? 'sync' : 'async' ?>"
-        >
+        <?php /* Source order IS preference order: the browser takes the first
+                 <source> whose type it decodes and never looks at the rest, so
+                 the formats are emitted most-wanted first. Each carries its own
+                 sizes — a <source> ignores the sizes on the <img> below it. */ ?>
+        <picture>
+          <?php foreach ($sources as $type => $sourceLadder) : ?>
+          <source
+            type="<?= $type ?>"
+            srcset="<?= $imageField->srcset($sourceLadder) ?>"
+            sizes="<?= $imgSizes ?>"
+          >
+          <?php endforeach ?>
+          <img
+            class="swiper-slide__img"
+            src="<?= $base->url() ?>"
+            <?php if ($srcset) : ?>srcset="<?= $srcset ?>"
+            sizes="<?= $imgSizes ?>"
+            <?php endif ?>width="<?= $base->width() ?>"
+            height="<?= $base->height() ?>"
+            alt="<?= htmlspecialchars($altText, ENT_QUOTES, 'UTF-8') ?>"
+            loading="<?= $isFirst ? 'eager' : 'lazy' ?>"
+            decoding="<?= $isFirst ? 'sync' : 'async' ?>"
+            fetchpriority="<?= $isFirst ? 'high' : 'auto' ?>"
+          >
+        </picture>
 
       </figure>
       <?php endif ?>
