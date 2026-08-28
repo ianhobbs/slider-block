@@ -336,6 +336,34 @@ Every option goes in `site/config/config.php` under its **dotted key** — see t
 | `srcsets` | `[]` | Native mode: point a format at a `thumbs.srcsets` ladder you already define. |
 | `fullWidthSizes` | `null` | Replaces `sizes` for full-span blocks. |
 
+### A tuned site, in two lines
+
+Defaults work with no config at all. The two options worth setting on a site that already has
+its own thumb ladders and a content container narrower than the viewport:
+
+```php
+return [
+    'ianhobbs.kirby-slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
+    'ianhobbs.kirby-slider-block.fullWidthSizes'
+        => '(min-width: 780px) calc(816px + (100vw - 816px) * 0.3), calc(100vw - 2.5rem)',
+];
+```
+
+The first points each format at a `thumbs.srcsets` ladder you already define — one width ramp
+on the site instead of two. The second corrects the `sizes` hint for full-span blocks, which
+otherwise assume `100vw`.
+
+**Both values are site-specific — read them, don't copy them.** The `srcsets` values are the
+names of *your* ladders. The `fullWidthSizes` string above is derived from one particular
+layout: an 816px content measure (a 48rem measure plus two 24px gutters) in a container that
+reaches 30% of the remaining distance to the viewport edge above 780px, and is a plain framed
+child below it. Measure your own box in the browser and write the equivalent. Getting it wrong
+in the *narrow* direction is cheap; overstating it buys a rung too high on every slide, which
+is the whole cost the option exists to avoid.
+
+Both are explained in full below: [Reusing ladders you already have](#reusing-ladders-you-already-have)
+and [A `sizes` the plugin cannot work out](#a-sizes-the-plugin-cannot-work-out).
+
 ### Turning AVIF off
 
 ```php
