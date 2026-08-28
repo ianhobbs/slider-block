@@ -15,7 +15,7 @@ use IanHobbs\Swiper\SwiperBlock;
 
 Kirby::plugin('ianhobbs/kirby-slider-block', [
 
-    'version' => '1.5.1',
+    'version' => '1.6.0',
 
     // Set injectAssets to false to skip the automatic asset injection entirely
     // (e.g. when Swiper is already bundled/loaded globally by the site).
