@@ -3,7 +3,7 @@
 /**
  * Blueprint structure tests
  *
- * Verifies that the swiper block blueprint YAML is valid
+ * Verifies that the slider block blueprint YAML is valid
  * and contains all expected tabs and fields.
  */
 
@@ -11,7 +11,7 @@ use Kirby\Data\Yaml;
 
 beforeEach(function () {
     $this->blueprint = Yaml::read(
-        __DIR__ . '/../../../blueprints/blocks/swiper.yml'
+        __DIR__ . '/../../../blueprints/blocks/slider.yml'
     );
 });
 
@@ -63,12 +63,12 @@ test('layout tab offers Tailwind-named caption sizes', function () {
     // fallback table covers — otherwise a non-Tailwind site gets no size at all.
     $headings = array_column($fields['heading_size']['options'], 'value');
     $subtexts = array_column($fields['subtext_size']['options'], 'value');
-    expect($headings)->toBe(IanHobbs\Swiper\SwiperBlock::HEADING_SIZES);
-    expect($subtexts)->toBe(IanHobbs\Swiper\SwiperBlock::SUBTEXT_SIZES);
+    expect($headings)->toBe(IanHobbs\Slider\SliderBlock::HEADING_SIZES);
+    expect($subtexts)->toBe(IanHobbs\Slider\SliderBlock::SUBTEXT_SIZES);
 
-    $css = file_get_contents(__DIR__ . '/../../../src/frontend/swiper-block.css');
+    $css = file_get_contents(__DIR__ . '/../../../src/frontend/slider-block.css');
     foreach (array_unique([...$headings, ...$subtexts]) as $class) {
-        expect($css)->toContain(".swiper-slide-caption .{$class})");
+        expect($css)->toContain(".slider-slide-caption .{$class})");
     }
 });
 
@@ -76,18 +76,18 @@ test('the mobile height fields are revealed by the unit and the toggle', functio
     $fields = $this->blueprint['tabs']['layout']['fields'];
 
     // The toggle appears only for absolute heights — vh/svh already scale.
-    expect($fields['mobile_height_enable']['when'])->toBe(['slider_height_unit' => 'px']);
+    expect($fields['mobile_height_enable']['when'])->toBe(['height_unit' => 'px']);
     expect($fields['mobile_height_enable']['default'])->toBeFalse();
 
     // The number needs both: Kirby ANDs the conditions.
     expect($fields['mobile_height']['when'])->toBe([
-        'slider_height_unit'   => 'px',
+        'height_unit'   => 'px',
         'mobile_height_enable' => true,
     ]);
 
     // Every unit the toggle can be gated on must exist in the unit field, or the
     // condition silently never fires.
-    $units = array_column($fields['slider_height_unit']['options'], 'value');
+    $units = array_column($fields['height_unit']['options'], 'value');
     expect($units)->toContain('px');
 });
 
@@ -95,10 +95,10 @@ test('the stylesheet applies the mobile height below the stacking breakpoint', f
     // Swiper can't carry this — `breakpoints` takes layout params only, and the
     // `height` option makes the instance non-responsive. It has to be a media
     // query, so the property the model emits must actually be consumed by one.
-    $css = file_get_contents(__DIR__ . '/../../../src/frontend/swiper-block.css');
+    $css = file_get_contents(__DIR__ . '/../../../src/frontend/slider-block.css');
 
     expect($css)->toContain('@media (max-width: 768px)')
-                ->toContain('--swiper-block-mobile-height');
+                ->toContain('--slider-block-mobile-height');
 });
 
 test('the easing field offers only keys the model maps', function () {
@@ -107,7 +107,7 @@ test('the easing field offers only keys the model maps', function () {
     expect($field['default'])->toBe('smooth');
 
     $values = array_column($field['options'], 'value');
-    expect($values)->toBe(array_keys(IanHobbs\Swiper\SwiperBlock::EASINGS));
+    expect($values)->toBe(array_keys(IanHobbs\Slider\SliderBlock::EASINGS));
 });
 
 test('layout tab offers caption fonts the model accepts and the CSS defines', function () {
@@ -116,13 +116,13 @@ test('layout tab offers caption fonts the model accepts and the CSS defines', fu
     expect($field['default'])->toBe('font-sans');
 
     $values = array_column($field['options'], 'value');
-    expect($values)->toBe(IanHobbs\Swiper\SwiperBlock::CAPTION_FONTS);
+    expect($values)->toBe(IanHobbs\Slider\SliderBlock::CAPTION_FONTS);
 
     // Same contract as the sizes: every offered class needs a fallback rule, or
     // a non-Tailwind site picks a font and sees nothing change.
-    $css = file_get_contents(__DIR__ . '/../../../src/frontend/swiper-block.css');
+    $css = file_get_contents(__DIR__ . '/../../../src/frontend/slider-block.css');
     foreach ($values as $class) {
-        expect($css)->toContain(".swiper-slide-caption.{$class})");
+        expect($css)->toContain(".slider-slide-caption.{$class})");
     }
 });
 
@@ -148,8 +148,8 @@ test('layout tab has the column width hint, defaulting to auto-detect', function
 
 test('layout tab keeps the fixed height override', function () {
     $fields = $this->blueprint['tabs']['layout']['fields'];
-    expect($fields)->toHaveKey('slider_height');
-    expect($fields['slider_height']['type'])->toBe('number');
+    expect($fields)->toHaveKey('height');
+    expect($fields['height']['type'])->toBe('number');
 });
 
 test('animation tab has effect field with slide fade creative options', function () {

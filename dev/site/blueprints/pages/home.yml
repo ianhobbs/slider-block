@@ -39,5 +39,5 @@ sections:
           - "3/12, 7/12, 2/12"
           - "4/12, 3/12, 5/12"
         fieldsets:
-          - swiper
+          - slider
           - text

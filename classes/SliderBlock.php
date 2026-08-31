@@ -1,6 +1,6 @@
 <?php
 
-namespace IanHobbs\Swiper;
+namespace IanHobbs\Slider;
 
 use Kirby\Cms\Block;
 use Kirby\Cms\Structure;
@@ -17,11 +17,53 @@ use Kirby\Cms\Structure;
  * parent's `__call`; the methods below are named distinctly so they never shadow
  * a field of the same name.
  */
-class SwiperBlock extends Block
+class SliderBlock extends Block
 {
+    /** Plugin id, and the prefix every option of ours hangs off. */
+    public const PLUGIN_ID = 'ianhobbs.slider-block';
+
+    /**
+     * The 1.x option prefix. 2.0.0 renamed the package from
+     * `ianhobbs/kirby-slider-block` to `ianhobbs/slider-block`, which moves the
+     * option namespace with it — so a site's config.php keeps working unedited,
+     * pluginOption() reads the old prefix too. Remove with the 1.x line.
+     */
+    public const LEGACY_PLUGIN_ID = 'ianhobbs.kirby-slider-block';
+
+    /**
+     * Block types this model answers to. 2.0.0 renamed the type from `swiper`
+     * to `slider`, and the type is written into every saved content file, so
+     * `swiper` stays registered as an alias — dropping it would blank every
+     * block an existing site has already saved. Remove with the 1.x line.
+     *
+     * @var list<string>
+     */
+    public const BLOCK_TYPES = ['slider', 'swiper'];
+
+    /**
+     * One option read, old prefix first.
+     *
+     * Old-first, not new-first, because the new prefix carries this plugin's
+     * registered defaults (see index.php) and so never reads back as null — a
+     * site setting only the old key could never win a new-first test. The old
+     * prefix registers no defaults, so a non-null value there is always
+     * something the site asked for explicitly. A site that sets both should
+     * drop the old key; until it does, the old key wins.
+     */
+    public static function pluginOption(string $key, mixed $default = null): mixed
+    {
+        $legacy = kirby()->option(self::LEGACY_PLUGIN_ID . '.' . $key);
+
+        if ($legacy !== null) {
+            return $legacy;
+        }
+
+        return kirby()->option(self::PLUGIN_ID . '.' . $key, $default);
+    }
+
     /**
      * Font sizes offered in the Panel, as Tailwind utility class names. The class
-     * is emitted verbatim so a Tailwind site styles it natively; swiper-block.css
+     * is emitted verbatim so a Tailwind site styles it natively; slider-block.css
      * carries a zero-specificity `:where()` fallback for the same names, so the
      * scale also works on sites without Tailwind. Anything outside this list is
      * ignored — the value lands in a class attribute.
@@ -37,8 +79,8 @@ class SwiperBlock extends Block
     /**
      * Caption font families offered in the Panel, as Tailwind utility class
      * names. Same contract as the sizes: a Tailwind site resolves them from its
-     * own theme, and swiper-block.css defines each one as a `:where()` fallback
-     * pointing at a `--swiper-block-font-*` custom property, so a site without
+     * own theme, and slider-block.css defines each one as a `:where()` fallback
+     * pointing at a `--slider-block-font-*` custom property, so a site without
      * Tailwind can restyle the whole set by setting those properties.
      *
      * `font-body` is not a Tailwind stock utility — it is the conventional name
@@ -170,7 +212,7 @@ class SwiperBlock extends Block
      */
     public function formats(): array
     {
-        $option  = kirby()->option('ianhobbs.kirby-slider-block.formats', self::DEFAULT_FORMATS);
+        $option  = self::pluginOption('formats', self::DEFAULT_FORMATS);
         $enabled = [];
 
         foreach ((array) $option as $key => $value) {
@@ -205,7 +247,7 @@ class SwiperBlock extends Block
     public function fallbackFormat(): string
     {
         $formats = $this->formats();
-        $named   = kirby()->option('ianhobbs.kirby-slider-block.fallbackFormat', 'webp');
+        $named   = self::pluginOption('fallbackFormat', 'webp');
 
         if (is_string($named) && in_array($named, $formats, true)) {
             return $named;
@@ -266,15 +308,59 @@ class SwiperBlock extends Block
      * Otherwise the built-in widths above are emitted in that format.
      *
      * Fixed-ratio modes: the cropped per-orientation srcset from site config.
-     * `swiper-horiz-avif` is used when the site defines it, so multiple formats
+     * `slider-horiz-avif` is used when the site defines it, so multiple formats
      * need no plugin option at all; when it doesn't, only the fallback format
-     * resolves — to the plain `swiper-horiz` — and the markup is what it was
+     * resolves — to the plain `slider-horiz` — and the markup is what it was
      * before 1.7.0.
      */
+    /**
+     * The site-config name of a named srcset or thumb preset, old name included.
+     *
+     * 2.0.0 renamed the four names a consuming site defines — `swiper-horiz`,
+     * `swiper-vert`, `swiper-lqip-horiz`, `swiper-lqip-vert` — to their
+     * `slider-` equivalents. Those live in the SITE's config.php, not here, so
+     * the rename cannot be applied for them: a site upgrading the plugin would
+     * otherwise lose every cropped thumb until it edited its own config. The new
+     * name wins whenever the site defines anything under it; the old one is used
+     * only when nothing new is defined and something old is.
+     *
+     * @param list<string> $suffixes format suffixes to look for (`slider-horiz-avif`)
+     */
+    protected static function resolveThumbName(
+        string $group,
+        string $new,
+        string $legacy,
+        array $suffixes = []
+    ): string {
+        foreach ([$new, $legacy] as $candidate) {
+            $names = [$candidate];
+
+            foreach ($suffixes as $suffix) {
+                $names[] = $candidate . '-' . $suffix;
+            }
+
+            foreach ($names as $name) {
+                if (kirby()->option($group . '.' . $name) !== null) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return $new;
+    }
+
+    /** The per-orientation srcset base name from site config. */
+    protected function srcsetBase(): string
+    {
+        return $this->orientationValue() === 'vertical'
+            ? self::resolveThumbName('thumbs.srcsets', 'slider-vert', 'swiper-vert', $this->formats())
+            : self::resolveThumbName('thumbs.srcsets', 'slider-horiz', 'swiper-horiz', $this->formats());
+    }
+
     protected function ladder(string $format): array
     {
         if ($this->isNative()) {
-            $named = kirby()->option('ianhobbs.kirby-slider-block.srcsets', [])[$format] ?? null;
+            $named = self::pluginOption('srcsets', [])[$format] ?? null;
 
             if ($named !== null) {
                 return kirby()->option('thumbs.srcsets.' . $named, []);
@@ -293,7 +379,7 @@ class SwiperBlock extends Block
             return $ladder;
         }
 
-        $base   = $this->orientationValue() === 'vertical' ? 'swiper-vert' : 'swiper-horiz';
+        $base   = $this->srcsetBase();
         $ladder = kirby()->option('thumbs.srcsets.' . $base . '-' . $format, []);
 
         if ($ladder !== []) {
@@ -360,7 +446,7 @@ class SwiperBlock extends Block
             return $this->ladder($this->fallbackFormat());
         }
 
-        return $this->orientationValue() === 'vertical' ? 'swiper-vert' : 'swiper-horiz';
+        return $this->srcsetBase();
     }
 
     /** LQIP placeholder. Native uses a width-only tiny (keeps the image ratio). */
@@ -369,7 +455,9 @@ class SwiperBlock extends Block
         if ($this->isNative()) {
             return ['width' => 48, 'blur' => 4, 'quality' => 30, 'format' => 'webp'];
         }
-        return $this->orientationValue() === 'vertical' ? 'swiper-lqip-vert' : 'swiper-lqip-horiz';
+        return $this->orientationValue() === 'vertical'
+            ? self::resolveThumbName('thumbs.presets', 'slider-lqip-vert', 'swiper-lqip-vert')
+            : self::resolveThumbName('thumbs.presets', 'slider-lqip-horiz', 'swiper-lqip-horiz');
     }
 
     /**
@@ -430,13 +518,13 @@ class SwiperBlock extends Block
             // How wide a full-span block actually is depends on the host
             // layout's container, which the plugin cannot see. A site that has
             // measured its own can hand over a finished `sizes` string.
-            $full = kirby()->option('ianhobbs.kirby-slider-block.fullWidthSizes');
+            $full = self::pluginOption('fullWidthSizes');
 
             return is_string($full) && $full !== '' ? $full : $perSlide('100vw');
         }
 
         // Below the host layout's stacking breakpoint the column is full width.
-        $breakpoint = kirby()->option('ianhobbs.kirby-slider-block.stackBreakpoint', '768px');
+        $breakpoint = self::pluginOption('stackBreakpoint', '768px');
         $columnVw   = rtrim(rtrim(number_format($span / 12 * 100, 4, '.', ''), '0'), '.') . 'vw';
 
         return sprintf(
@@ -484,20 +572,20 @@ class SwiperBlock extends Block
             $scan = [];
 
             foreach ($field->toLayouts() as $layout) {
-                $rowHasSwiper = false;
+                $rowHasSlider = false;
 
                 foreach ($layout->columns() as $column) {
                     foreach ($column->blocks() as $block) {
-                        if ($block->type() !== 'swiper') {
+                        if (in_array($block->type(), self::BLOCK_TYPES, true) === false) {
                             continue;
                         }
 
                         $scan[$block->id()] = [
                             'span'       => $column->span(),
-                            'firstInRow' => $rowHasSwiper === false,
+                            'firstInRow' => $rowHasSlider === false,
                         ];
 
-                        $rowHasSwiper = true;
+                        $rowHasSlider = true;
                     }
                 }
             }
@@ -551,8 +639,8 @@ class SwiperBlock extends Block
         // Explicit container height (Fixed Height field) — decouples the block
         // height from the image box so text-only / empty slides don't collapse.
         // Emitted first; the stylesheet lets it take precedence over the ratio.
-        if ($height = $this->sliderHeight()) {
-            $styles[] = "--swiper-block-fixed-height:{$height}";
+        if ($height = $this->fixedHeight()) {
+            $styles[] = "--slider-block-fixed-height:{$height}";
 
             // Small-screen override, applied by a media query in the stylesheet.
             // Swiper itself can't carry this: `breakpoints` only accepts layout
@@ -560,7 +648,7 @@ class SwiperBlock extends Block
             // option is documented as making Swiper non-responsive. So it stays
             // CSS — which also means no JS runs on resize to maintain it.
             if ($mobile = $this->mobileHeight()) {
-                $styles[] = "--swiper-block-mobile-height:{$mobile}";
+                $styles[] = "--slider-block-mobile-height:{$mobile}";
             }
         }
 
@@ -568,7 +656,7 @@ class SwiperBlock extends Block
 
         if ($aspect === 'custom') {
             $custom    = (int) $this->custom_height()->or(600)->value();
-            $styles[]  = "--swiper-block-height:{$custom}px";
+            $styles[]  = "--slider-block-height:{$custom}px";
         }
         // 'native' (default): no container ratio — each figure sets its own
         // aspect-ratio from the image's real dimensions (see the snippet).
@@ -578,24 +666,52 @@ class SwiperBlock extends Block
     }
 
     /**
+     * The raw Fixed Height content value, reading the v1 key when the v2 one is
+     * absent. 2.0.0 renamed `slider_height` / `slider_height_unit` to `height` /
+     * `height_unit`; content written by 1.x still carries the old keys, and a
+     * content migration would mean rewriting every page on the site, so both are
+     * read here instead. Drop the fallback once 1.x content is gone.
+     *
+     * @param 'height'|'height_unit' $key
+     */
+    protected function heightValue(string $key): ?string
+    {
+        $legacy = $key === 'height' ? 'slider_height' : 'slider_height_unit';
+        $field  = $this->content()->get($key);
+
+        if ($field->isEmpty()) {
+            $field = $this->content()->get($legacy);
+        }
+
+        return $field->isEmpty() ? null : $field->value();
+    }
+
+    /**
      * Explicit container height as a CSS length (e.g. "600px", "80vh"), or null
      * when the editor left it at auto (0). Drives an explicit height on the
      * parent <div> so the block never collapses when slides have no image.
-     *
-     * The `slider_height` content keys are v1 legacy — v2 renames them to
-     * `height` / `height_unit` and this method to `fixedHeight()`.
      */
-    public function sliderHeight(): ?string
+    public function fixedHeight(): ?string
     {
-        $value = (int) $this->slider_height()->or(0)->value();
+        $value = (int) $this->heightValue('height');
         if ($value <= 0) {
             return null;
         }
 
-        $unit = $this->slider_height_unit()->or('px')->value();
+        $unit = $this->heightValue('height_unit') ?? 'px';
         $unit = in_array($unit, ['px', 'vh', 'svh', 'dvh'], true) ? $unit : 'px';
 
         return "{$value}{$unit}";
+    }
+
+    /**
+     * @deprecated 2.0.0 Renamed to fixedHeight(), matching the
+     *             `--slider-block-fixed-height` custom property it feeds. Kept
+     *             so snippets written against 1.x keep rendering.
+     */
+    public function sliderHeight(): ?string
+    {
+        return $this->fixedHeight();
     }
 
     /**
@@ -611,12 +727,12 @@ class SwiperBlock extends Block
      *  - the number is above zero. Zero means "no override" and falls through
      *    to the desktop height, matching how Fixed Height itself reads 0.
      *
-     * Callers should only emit this when sliderHeight() is set — with no fixed
+     * Callers should only emit this when fixedHeight() is set — with no fixed
      * height there is nothing to override.
      */
     public function mobileHeight(): ?string
     {
-        if ($this->slider_height_unit()->or('px')->value() !== 'px') {
+        if (($this->heightValue('height_unit') ?? 'px') !== 'px') {
             return null;
         }
 
@@ -730,10 +846,10 @@ class SwiperBlock extends Block
     // ── JS config ────────────────────────────────────────────────────────────
 
     /**
-     * The Swiper options object as a JSON string for the `data-swiper-config`
+     * The Swiper options object as a JSON string for the `data-slider-config`
      * attribute. Keys map 1:1 to Swiper options; context-prefixed keys
      * (autoplay*, pagination*, free*) are expanded into sub-objects by
-     * swiper-block.js.
+     * slider-block.js.
      */
     public function jsConfig(): string
     {
@@ -744,11 +860,11 @@ class SwiperBlock extends Block
         $config = [
             // Layout
             // Whether the block carries an explicit container height. Drives
-            // autoHeight in swiper-block.js: with a fixed height the slides are
+            // autoHeight in slider-block.js: with a fixed height the slides are
             // height:100% of the wrapper, so measuring the active slide to size
             // that same wrapper is circular and oscillates on every observer
             // tick. Fixed height ⇒ autoHeight off.
-            'fixedHeight'    => $this->sliderHeight() !== null,
+            'fixedHeight'    => $this->fixedHeight() !== null,
             'direction'      => $this->direction()->or('horizontal')->value(),
             'slidesPerView'  => $slidesPerView,
             'slidesPerGroup' => (int) $this->slides_per_group()->or(1)->value(),

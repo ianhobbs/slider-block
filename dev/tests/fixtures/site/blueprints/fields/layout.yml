@@ -31,4 +31,4 @@ fieldsets:
   - video
   - code
   - image
-  - swiper
+  - slider

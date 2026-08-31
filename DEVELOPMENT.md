@@ -1,4 +1,4 @@
-# Development Guide — kirby-slider-block
+# Development Guide — slider-block
 
 ## How this repo is laid out
 
@@ -12,7 +12,7 @@ Kirby install, and the Pest suite. That folder is a normal Kirby project layout 
 into the plugin.
 
 ```text
-kirby-slider-block/
+slider-block/
 ├── index.php  index.js  index.css     ← plugin entry + built Panel bundle
 ├── assets/dist/                      ← built frontend bundle (committed)
 ├── assets/  blueprints/  classes/  snippets/
@@ -45,8 +45,8 @@ never receive it.
 ## Setup
 
 ```bash
-git clone https://github.com/ianhobbs/kirby-slider-block.git kirby-slider-block
-cd kirby-slider-block/dev
+git clone https://github.com/ianhobbs/slider-block.git slider-block
+cd slider-block/dev
 composer install
 ```
 
@@ -111,7 +111,7 @@ Panel account.
 ### The layout fixture
 
 `dev/tests/fixtures/site/blueprints/fields/layout.yml` is a copy of a typical host site's
-layout field — themes in `settings`, the column ratios editors actually pick, and `swiper`
+layout field — themes in `settings`, the column ratios editors actually pick, and `slider`
 among its `fieldsets`. The fixture page blueprint extends it, so `LayoutTest` can resolve the
 block's blueprint the way the Panel does and render blocks from inside real `LayoutColumn`
 objects rather than in isolation.
@@ -124,13 +124,13 @@ suite sees the block in context.
 `dev/tests/Pest.php` provides these global helpers:
 
 ```php
-// Create a block with default swiper content — override any field
+// Create a block with default slider content — override any field
 $block = makeBlock(['effect' => 'fade', 'loop' => 'true']);
 
 // Render the snippet and return HTML
 $html = renderBlock($block);
 
-// Build one layout row: columns of the given widths, each holding swiper blocks
+// Build one layout row: columns of the given widths, each holding slider blocks
 $layouts = makeLayout([
     ['width' => '1/3', 'blocks' => [['effect' => 'fade', 'slides' => [...]]]],
     ['width' => '2/3', 'blocks' => []],
@@ -138,15 +138,15 @@ $layouts = makeLayout([
 
 // Several rows — the supported "blocks down a page" arrangement
 $layouts = makeLayoutRows([
-    swiperRow('Hero'),                 // one row, one full-width block
-    swiperRow('Feature', '8/12'),      // …in an 8/12 column
+    sliderRow('Hero'),                 // one row, one full-width block
+    sliderRow('Feature', '8/12'),      // …in an 8/12 column
 ]);
 
 // Render it the way a host layout template does (themed row → columns → blocks)
 $html = renderLayout($layouts);
 
 // The first block as a model, for computed values that never reach the markup
-expect(firstSwiper($layouts)->columnSpan())->toBe(8);
+expect(firstSlider($layouts)->columnSpan())->toBe(8);
 ```
 
 Structure fields (like `slides`) are passed as PHP arrays — the helpers YAML-encode them
@@ -154,10 +154,10 @@ automatically, matching how Kirby stores content on disk.
 
 `makeLayout()` / `makeLayoutRows()` build the layouts **through a content field**, not through
 `Layouts::factory()` directly. That matters: the field is how a block finds its own column
-again (`SwiperBlock::layoutContext()`), and without it every block looks full-width.
+again (`SliderBlock::layoutContext()`), and without it every block looks full-width.
 
 Two per-request caches need clearing between tests that touch them — asset injection
-(`SwiperBlock::forgetAssets()`) and the layout scan (`SwiperBlock::forgetLayoutScans()`).
+(`SliderBlock::forgetAssets()`) and the layout scan (`SliderBlock::forgetLayoutScans()`).
 `LayoutTest` does both in `beforeEach`.
 
 ### The visual dev site
@@ -169,7 +169,7 @@ layout CSS**; the host site owns that. The dev grid stacks at `768px`, matching 
 default `stackBreakpoint`, so the `sizes` hint and the CSS agree.
 
 Keep the `makeBlock()` defaults in sync with the blueprint. Fields left in there after being
-removed from `blueprints/blocks/swiper.yml` will silently keep dead code paths alive and make
+removed from `blueprints/blocks/slider.yml` will silently keep dead code paths alive and make
 tests pass against behaviour that can no longer be reached.
 
 ### Notes on `Plugin::version()`
@@ -178,7 +178,7 @@ Kirby's `Plugin::version()` reads from the plugin's `composer.json` or Composer'
 `installed.json`. We intentionally omit a `"version"` field from `composer.json` (Packagist
 reads versions from git tags only), so `Plugin::version()` returns `null` in development.
 
-In production — when someone installs via `composer require ianhobbs/kirby-slider-block` —
+In production — when someone installs via `composer require ianhobbs/slider-block` —
 Composer writes the resolved tag version to `installed.json` and the Panel displays it.
 
 Tests assert the version via `$plugin->extends()['version']`, which reads the `'version'` key
@@ -209,7 +209,7 @@ a committed seed page would show as permanently modified — and uploaded images
 into the repo.
 
 What's tracked: `index.php`, `site/blueprints/`, `site/templates/`, `site/config/` and the
-`site/plugins/kirby-slider-block` symlink. What never is: `content/`, `media/`,
+`site/plugins/slider-block` symlink. What never is: `content/`, `media/`,
 `site/accounts/`, `site/sessions/`, `site/cache/` — your images and Panel credentials stay on
 your machine.
 
@@ -250,20 +250,20 @@ npm run dev              # kirbyup dev server, hot-reloads on src/ changes
 
 ### Frontend bundle — `src/frontend/` → `assets/dist/`
 
-`assets/dist/swiper-block.js` and `.css` are what the snippet loads on the site. Each bundles
+`assets/dist/slider-block.js` and `.css` are what the snippet loads on the site. Each bundles
 **Swiper 14.1.0 (MIT)** with the block's own code, via esbuild.
 
 Edit the sources, never the output:
 
 | Source | Purpose |
 |---|---|
-| `src/frontend/swiper-block.js` | Init logic **and** the Swiper module registration |
-| `src/frontend/swiper-block.css` | The block's own rules — this is the file the tests assert against |
-| `src/frontend/swiper-block.entry.css` | Chooses which Swiper stylesheets come along |
+| `src/frontend/slider-block.js` | Init logic **and** the Swiper module registration |
+| `src/frontend/slider-block.css` | The block's own rules — this is the file the tests assert against |
+| `src/frontend/slider-block.entry.css` | Chooses which Swiper stylesheets come along |
 
 Two things to know before changing it:
 
-- **Swiper is imported inside `swiper-block.js`, not from a separate entry.** Static imports
+- **Swiper is imported inside `slider-block.js`, not from a separate entry.** Static imports
   are hoisted, so an entry that imported the init module *and then* assigned `window.Swiper`
   would run the init first and find nothing there.
 - **Adding a Swiper feature means registering its module.** Only the ten the block can use are
@@ -284,20 +284,46 @@ plugin bundler. It compiles SFCs against the Panel's bundled Vue 2.7 runtime (in
 shipping a second copy of Vue) and strips `process.env` references that would crash in the
 browser.
 
-When you remove a field from the blueprint, check `src/SwiperBlock.vue` for computed properties
+When you remove a field from the blueprint, check `src/SliderBlock.vue` for computed properties
 still reading it — the Panel preview fails silently, falling back to a default that no longer
 matches what the frontend renders.
 
 ---
 
+## The 1.x compatibility surface
+
+2.0.0 renamed everything the plugin owns. The names a *site* owns could not be renamed with it
+— content it has saved, config it wrote, templates it maintains — so each of those is read
+under both names. The fallbacks are deliberately all in one place per layer:
+
+| Layer | Where | What it covers |
+|---|---|---|
+| Block type, blueprints, snippets, class | `index.php` | `swiper` block type + `blocks/swiper`, `files/swiper-image`, `class_alias()` for `IanHobbs\Swiper\SwiperBlock` |
+| Options | `SliderBlock::pluginOption()` | `ianhobbs.kirby-slider-block.*` |
+| Named srcsets / thumb presets | `SliderBlock::resolveThumbName()` | `swiper-horiz`, `swiper-vert`, `swiper-lqip-*` |
+| Content keys | `SliderBlock::heightValue()` | `slider_height`, `slider_height_unit` |
+| Panel preview | `src/SliderBlock.vue` | the same two content keys, and the `swiper` block registration in `src/index.js` |
+| Frontend markup | `src/frontend/slider-block.js` | `.swiper-block`, `data-swiper-config`, `window.initSwiperBlocks`, `el._swiperInstance` |
+
+`dev/tests/Feature/LegacyCompatTest.php` is the contract for all of it — retiring the 1.x line
+means deleting that file and the code it names, together and deliberately.
+
+CSS class names are the one thing with no fallback: a site overriding `.swiper-block` or
+`--swiper-block-*` must rename its own selectors. Swiper's own classes are untouched.
+
+---
+
 ## Release checklist
 
-1. Update `'version' => 'x.y.z'` in `index.php` and `"version"` in `package.json`
+1. Update the version in all four places it is written: `'version' => 'x.y.z'` in
+   `index.php`, `"version"` in `package.json` and `package-lock.json` (twice — the root
+   object and `packages.""`), and the expected value in
+   `dev/tests/Feature/PluginTest.php`
 2. `cd dev && composer test` — all tests must pass
 3. `npm run build` if anything under `src/` changed, and commit the output —
    `index.js` / `index.css` for the Panel, `assets/dist/` for the frontend
 4. Check the README still matches the blueprint — fields removed from
-   `blueprints/blocks/swiper.yml` have to leave the docs too
+   `blueprints/blocks/slider.yml` have to leave the docs too
 5. Commit everything, **then** tag — the tag must contain the version bump:
 
    ```bash
@@ -314,6 +340,13 @@ matches what the frontend renders.
 
 Packagist picks up the new tag automatically. Do **not** add a `"version"` field to
 `composer.json` — Packagist reads versions from git tags only.
+
+The package was renamed from `ianhobbs/kirby-slider-block` to `ianhobbs/slider-block` in
+2.0.0. Packagist keys packages by the `name` in `composer.json`, not by repository URL, so the
+new name is a **separate Packagist package** and has to be submitted once; the old one should
+then be marked abandoned, with `ianhobbs/slider-block` as its replacement, so `composer
+require` on the old name points people here. The GitHub repository redirects from its old URL,
+so existing clones and the old package's `source` URL keep resolving.
 
 > Tagging before the version bump is committed produces a release whose `index.php` reports the
 > *previous* version. A published tag can't be moved safely once Packagist has cached it — cut

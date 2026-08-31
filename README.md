@@ -1,4 +1,4 @@
-![Packagist Version](https://img.shields.io/packagist/v/ianhobbs/kirby-slider-block)
+![Packagist Version](https://img.shields.io/packagist/v/ianhobbs/slider-block)
 ![Kirby 5](https://img.shields.io/badge/Kirby-5-black)
 ![License MIT](https://img.shields.io/badge/license-MIT-green)
 
@@ -17,10 +17,10 @@ Swiper ships pre-bundled with the plugin — no CDN, no npm, and no build step r
 ### Via Composer (recommended)
 
 ```bash
-composer require ianhobbs/kirby-slider-block
+composer require ianhobbs/slider-block
 ```
 
-This installs to `site/plugins/kirby-slider-block/` — not `vendor/` — via
+This installs to `site/plugins/slider-block/` — not `vendor/` — via
 [`getkirby/composer-installer`](https://github.com/getkirby/composer-installer), so Kirby
 auto-loads it.
 
@@ -29,8 +29,52 @@ auto-loads it.
 Clone into your site's `site/plugins/` directory:
 
 ```bash
-git clone https://github.com/ianhobbs/kirby-slider-block site/plugins/kirby-slider-block
+git clone https://github.com/ianhobbs/slider-block site/plugins/slider-block
 ```
+
+---
+
+## Upgrading from 1.x
+
+**2.0.0 renames the package.** `ianhobbs/kirby-slider-block` is not updated any further — the
+2.x line is published as `ianhobbs/slider-block`:
+
+```bash
+composer remove ianhobbs/kirby-slider-block
+composer require ianhobbs/slider-block
+```
+
+That also moves the install directory, so delete the old `site/plugins/kirby-slider-block/`
+after switching. Everything else in the rename has a **read fallback**, so a site that upgrades
+and changes nothing else keeps working:
+
+| Renamed | 1.x name | 2.x name | Still reads the 1.x name? |
+|---|---|---|---|
+| Block type | `swiper` | `slider` | Yes — saved content and blueprint `fieldsets` both keep resolving |
+| File blueprint | `swiper-image` | `slider-image` | Yes — images already uploaded keep their blueprint |
+| Option prefix | `ianhobbs.kirby-slider-block.*` | `ianhobbs.slider-block.*` | Yes — and the 1.x key wins while both are set |
+| Named srcsets | `swiper-horiz` / `swiper-vert` | `slider-horiz` / `slider-vert` | Yes — used when nothing is defined under the new name |
+| LQIP presets | `swiper-lqip-horiz` / `-vert` | `slider-lqip-horiz` / `-vert` | Yes — same rule |
+| Content keys | `slider_height` / `slider_height_unit` | `height` / `height_unit` | Yes — blocks saved by 1.x keep their height |
+| Model class | `IanHobbs\Swiper\SwiperBlock` | `IanHobbs\Slider\SliderBlock` | Yes — the old name is aliased |
+| Model method | `sliderHeight()` | `fixedHeight()` | Yes — kept as a deprecated alias |
+
+The fallbacks exist so the upgrade is a one-line Composer change; they are **not permanent**
+and go when the 1.x line is retired. Move your own config keys and preset names over when
+convenient.
+
+### What does not fall back
+
+**CSS class names and custom properties.** `.swiper-block`, `.swiper-slide-caption`,
+`.swiper-slide__img`, `--swiper-block-fixed-height` and the rest are now `.slider-block`,
+`.slider-slide-caption`, `.slider-slide__img`, `--slider-block-fixed-height`. A site with its
+own overrides for those has to rename its selectors. Swiper's own classes — `.swiper`,
+`.swiper-slide`, `.swiper-wrapper`, `.swiper-button-*`, `.swiper-pagination`, and every
+`--swiper-*` property that is not `--swiper-block-*` — belong to the library and are unchanged.
+
+The bundled JavaScript does still initialise 1.x markup (`.swiper-block` /
+`data-swiper-config`), and `window.initSwiperBlocks` still works, for sites running a forked
+copy of the old snippet.
 
 ---
 
@@ -38,7 +82,7 @@ git clone https://github.com/ianhobbs/kirby-slider-block site/plugins/kirby-slid
 
 No template changes needed. When a page contains a Slider block, the snippet automatically injects Swiper and the plugin CSS **once per page load** — the first block to render claims the injection, so a page with several Slider blocks down it still loads Swiper once. Everything is self-contained.
 
-The whole frontend is **two same-origin files** — `assets/dist/swiper-block.css` and `assets/dist/swiper-block.js` — each bundling Swiper 14.1.0 (MIT) with the block's own code. No CDN dependency, and **nothing to allow in a Content-Security-Policy**. See [Content-Security-Policy](#content-security-policy).
+The whole frontend is **two same-origin files** — `assets/dist/slider-block.css` and `assets/dist/slider-block.js` — each bundling Swiper 14.1.0 (MIT) with the block's own code. No CDN dependency, and **nothing to allow in a Content-Security-Policy**. See [Content-Security-Policy](#content-security-policy).
 
 Only the Swiper modules the block can actually use are compiled in; the rest (cube/flip/cards effects, thumbs, zoom, parallax, scrollbar, grid, virtual, hash and history navigation) are dropped at build time — roughly a quarter off both the JavaScript and the CSS, gzipped.
 
@@ -46,7 +90,7 @@ Only the Swiper modules the block can actually use are compiled in; the rest (cu
 
 Swiper 14 targets the last couple of years of evergreen browsers: **Chrome/Edge 110+,
 Safari 16.4+ (iOS 16.4+), Firefox 110+**. Sites that still need older browsers should stay on
-kirby-slider-block **1.4.x**, which bundles Swiper 12.
+**1.4.x** (published as `ianhobbs/kirby-slider-block`), which bundles Swiper 12.
 
 If you prefer to control asset placement (e.g. move them to `<head>` for performance), see [Manual asset loading](#manual-asset-loading) below.
 
@@ -54,14 +98,14 @@ If you prefer to control asset placement (e.g. move them to `<head>` for perform
 
 ## Usage in the Panel
 
-Add the `swiper` block type to any blocks or layout field in your blueprint:
+Add the `slider` block type to any blocks or layout field in your blueprint:
 
 ```yaml
 fields:
   content:
     type: layout
     fieldsets:
-      - swiper
+      - slider
 ```
 
 > **One Slider block per layout row.** Several **down** a page are fine and fully
@@ -82,7 +126,7 @@ The block editor opens with **5 tabs** covering all configuration options:
 | Vertical Position | Top / Middle / Bottom — see [Caption colour, placement & type](#caption-colour-placement--type) |
 | Caption Colour | Colour picker (with alpha) for this slide's heading, subtext and CTA. Empty inherits the page |
 
-Uploads use the plugin's `swiper-image` file blueprint, which adds an **Alt text** field. Alt text falls back to the slide heading when left empty.
+Uploads use the plugin's `slider-image` file blueprint, which adds an **Alt text** field. Alt text falls back to the slide heading when left empty.
 
 ### Tab 2 — Layout
 
@@ -235,12 +279,12 @@ full-width size below the breakpoint, the column fraction above it. The breakpoi
 
 ```php
 return [
-    'ianhobbs.kirby-slider-block.stackBreakpoint' => '60rem',
+    'ianhobbs.slider-block.stackBreakpoint' => '60rem',
 ];
 ```
 
 Write plugin options with the **dotted key**, as above. Kirby stores plugin option defaults
-under their flat dotted name, and the nested form (`'ianhobbs' => ['kirby-slider-block' => …]`)
+under their flat dotted name, and the nested form (`'ianhobbs' => ['slider-block' => …]`)
 never reaches them — it is silently ignored, defaults intact. This applies to every option
 below.
 
@@ -277,24 +321,24 @@ onto the element, and **Caption Font** emits one onto the caption wrapper, so th
 subtext and CTA all share a single face:
 
 ```html
-<div class="swiper-slide-caption swiper-slide-caption--center swiper-slide-caption--middle font-sans">
-  <p class="swiper-slide-heading text-sm">…</p>
-  <p class="swiper-slide-subtext text-lg">…</p>
+<div class="slider-slide-caption slider-slide-caption--center slider-slide-caption--middle font-sans">
+  <p class="slider-slide-heading text-sm">…</p>
+  <p class="slider-slide-subtext text-lg">…</p>
 </div>
 ```
 
 On a Tailwind site those classes are already yours — Tailwind styles them, and the plugin
 stays out of the way. 
-If you are not using TW **Tailwind is not required.** `swiper-block.css` ships a fallback table
+If you are not using TW **Tailwind is not required.** `slider-block.css` ships a fallback table
 covering the same scale at Tailwind's own values:
 
 ```css
-:where(.swiper-slide-caption .text-sm) { font-size: 0.875rem; line-height: 1.25rem; }
+:where(.slider-slide-caption .text-sm) { font-size: 0.875rem; line-height: 1.25rem; }
 
 ```
 
 The `:where()` wrapper gives those rules **zero specificity**, so a real Tailwind utility — or
-any rule of your own targeting `.swiper-slide-heading` — always wins, whatever order the
+any rule of your own targeting `.slider-slide-heading` — always wins, whatever order the
 stylesheets load in. The fallback only applies when nothing else has an opinion.
 
 #### Overriding the caption fonts
@@ -304,10 +348,10 @@ can point them at your own faces without writing a selector or fighting specific
 
 ```css
 :root {
-  --swiper-block-font-sans:  "Your Sans Face", system-ui, sans-serif;
-  --swiper-block-font-body:  "Your Body Face", Georgia, serif;
-  --swiper-block-font-serif: "Your Serif", Georgia, serif;
-  --swiper-block-font-mono:  "Your Mono", ui-monospace, monospace;
+  --slider-block-font-sans:  "Your Sans Face", system-ui, sans-serif;
+  --slider-block-font-body:  "Your Body Face", Georgia, serif;
+  --slider-block-font-serif: "Your Serif", Georgia, serif;
+  --slider-block-font-mono:  "Your Mono", ui-monospace, monospace;
 }
 ```
 
@@ -343,8 +387,8 @@ its own thumb ladders and a content container narrower than the viewport:
 
 ```php
 return [
-    'ianhobbs.kirby-slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
-    'ianhobbs.kirby-slider-block.fullWidthSizes'
+    'ianhobbs.slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
+    'ianhobbs.slider-block.fullWidthSizes'
         => '(min-width: 780px) calc(816px + (100vw - 816px) * 0.3), calc(100vw - 2.5rem)',
 ];
 ```
@@ -368,7 +412,7 @@ and [A `sizes` the plugin cannot work out](#a-sizes-the-plugin-cannot-work-out).
 
 ```php
 return [
-    'ianhobbs.kirby-slider-block.formats' => ['avif' => false],
+    'ianhobbs.slider-block.formats' => ['avif' => false],
 ];
 ```
 
@@ -392,14 +436,14 @@ return [
             'webp' => [ /* … */ ],
         ],
     ],
-    'ianhobbs.kirby-slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
+    'ianhobbs.slider-block.srcsets' => ['avif' => 'avif', 'webp' => 'webp'],
 ];
 ```
 
 Whatever ladder is used, the block still caps it at each master's real width.
 
 In **fixed-ratio** modes the block reads the cropped per-orientation srcsets
-`swiper-horiz` / `swiper-vert`. Define `swiper-horiz-avif` and `swiper-vert-avif` and it picks
+`slider-horiz` / `slider-vert`. Define `slider-horiz-avif` and `slider-vert-avif` and it picks
 them up with no option at all; leave them undefined and only the fallback format resolves, to
 the plain named srcset, producing a single-format `<img>`.
 
@@ -410,7 +454,7 @@ the viewport, tell it so — the string replaces the whole attribute:
 
 ```php
 return [
-    'ianhobbs.kirby-slider-block.fullWidthSizes'
+    'ianhobbs.slider-block.fullWidthSizes'
         => '(min-width: 780px) calc(816px + (100vw - 816px) * 0.3), calc(100vw - 2.5rem)',
 ];
 ```
@@ -427,20 +471,20 @@ fraction.
 By default the snippet injects the asset tags at the point the block is rendered in the page body. For performance-sensitive sites you may want to place them in `<head>` instead. Add this to your head snippet:
 
 ```php
-<link rel="stylesheet" href="<?= $kirby->plugin('ianhobbs/kirby-slider-block')->asset('dist/swiper-block.css')->url() ?>">
+<link rel="stylesheet" href="<?= $kirby->plugin('ianhobbs/slider-block')->asset('dist/slider-block.css')->url() ?>">
 ```
 
 And before `</body>`:
 
 ```php
-<script src="<?= $kirby->plugin('ianhobbs/kirby-slider-block')->asset('dist/swiper-block.js')->url() ?>" defer></script>
+<script src="<?= $kirby->plugin('ianhobbs/slider-block')->asset('dist/slider-block.js')->url() ?>" defer></script>
 ```
 
 Then suppress auto-injection in `site/config/config.php`:
 
 ```php
 return [
-    'ianhobbs.kirby-slider-block.injectAssets' => false,
+    'ianhobbs.slider-block.injectAssets' => false,
 ];
 ```
 
@@ -464,7 +508,7 @@ To use a curve that isn't offered, override the property yourself — it's Swipe
 nothing in this plugin needs to know:
 
 ```css
-.swiper-block {
+.slider-block {
   --swiper-wrapper-transition-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
 }
 ```
@@ -503,7 +547,7 @@ block emits a few, carrying its height and caption colour) are covered by the
 
 Swiper containers have **no intrinsic height** — a block whose slides have nothing to give
 them height collapses to zero. The block handles that in two ways, both applied automatically
-to the `.swiper-block` parent `<div>` via an inline CSS custom property (no template or
+to the `.slider-block` parent `<div>` via an inline CSS custom property (no template or
 layout-class changes required):
 
 - **Auto** (`Fixed Height = 0`, the default) — each slide's height comes from its **image**,
@@ -515,7 +559,7 @@ layout-class changes required):
 
 > You don't need to add custom classes to your layout field to give the block a height — set
 > **Fixed Height** in the Layout tab instead. The plugin's CSS reads the value from the parent
-> `.swiper-block` element, so per-block height control lives entirely in the Panel.
+> `.slider-block` element, so per-block height control lives entirely in the Panel.
 
 ### A different height on phones
 
@@ -539,8 +583,8 @@ at your own breakpoint — the custom property is readable either way:
 
 ```css
 @media (max-width: 60rem) {
-  .swiper-block[style*="--swiper-block-mobile-height"] {
-    height: var(--swiper-block-mobile-height);
+  .slider-block[style*="--slider-block-mobile-height"] {
+    height: var(--slider-block-mobile-height);
   }
 }
 ```
@@ -563,7 +607,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the full guide, including how to add an
 visual test site inside `dev/`.
 
 Node is only required if you are modifying the **Panel editor** component
-(`src/SwiperBlock.vue`). The frontend JS (`assets/js/swiper-block.js`) is plain hand-authored
+(`src/SliderBlock.vue`). The frontend JS (`assets/js/slider-block.js`) is plain hand-authored
 JavaScript — no build step needed.
 
 ### Panel build

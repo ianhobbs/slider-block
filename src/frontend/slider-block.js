@@ -1,10 +1,10 @@
 /**
- * swiper-block.js — Kirby Swiper Block frontend init (bundle source)
+ * slider-block.js — Kirby Slider Block frontend init (bundle source)
  *
- * Reads per-block configuration from data-swiper-config and initialises Swiper.
+ * Reads per-block configuration from data-slider-config and initialises Swiper.
  *
  * BUILD ARTIFACT: this is the source. `npm run build` bundles it, together with
- * only the Swiper modules listed below, into assets/dist/swiper-block.js —
+ * only the Swiper modules listed below, into assets/dist/slider-block.js —
  * which is what the snippet actually loads. Editing the built file directly is
  * pointless; it is overwritten on the next build.
  *
@@ -52,23 +52,29 @@ window.Swiper = Swiper;
   'use strict';
 
   /**
-   * Initialise all .swiper-block elements not yet initialised.
+   * Initialise all .slider-block elements not yet initialised.
    * Safe to call multiple times (Turbo, htmx, manual re-init).
+   *
+   * `.swiper-block` and `data-swiper-config` are the 1.x markup. This bundle is
+   * loaded by the plugin's own snippet, which emits the new names — but a site
+   * running a forked copy of the 1.x snippet emits the old ones, and would
+   * otherwise get a page of dead carousels. Remove with the 1.x line.
    */
-  function initSwiperBlocks() {
-    document.querySelectorAll('.swiper-block').forEach(function (el) {
+  function initSliderBlocks() {
+    document.querySelectorAll('.slider-block, .swiper-block').forEach(function (el) {
 
       // ── Skip already-initialised instances ─────────────────────────────────
-      if (el._swiperInstance) return;
+      if (el._sliderInstance) return;
 
       // ── Parse PHP-injected config ───────────────────────────────────────────
       var raw = {};
+      var json = el.dataset.sliderConfig || el.dataset.swiperConfig;
       try {
-        if (el.dataset.swiperConfig) {
-          raw = JSON.parse(el.dataset.swiperConfig);
+        if (json) {
+          raw = JSON.parse(json);
         }
       } catch (e) {
-        console.warn('[swiper-block] Could not parse data-swiper-config on', el, e);
+        console.warn('[slider-block] Could not parse data-slider-config on', el, e);
       }
 
       // ── Build Swiper config ─────────────────────────────────────────────────
@@ -188,12 +194,13 @@ window.Swiper = Swiper;
 
       // ── Initialise ───────────────────────────────────────────────────────────
       var swiper = new Swiper(el, config);
-      el._swiperInstance = swiper;
+      el._sliderInstance = swiper;
+      el._swiperInstance = swiper; // 1.x property name; remove with the 1.x line
 
       // ── LQIP blur-up ─────────────────────────────────────────────────────────
       // Reveal the full-res image once loaded, fading out the blurred placeholder.
-      el.querySelectorAll('.swiper-slide__img').forEach(function (img) {
-        var media = img.closest('.swiper-slide-media');
+      el.querySelectorAll('.slider-slide__img, .swiper-slide__img').forEach(function (img) {
+        var media = img.closest('.slider-slide-media, .swiper-slide-media');
         if (!media) return;
         if (img.complete) {
           media.classList.add('is-loaded');
@@ -210,19 +217,20 @@ window.Swiper = Swiper;
   // ── Lifecycle hooks ─────────────────────────────────────────────────────────
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSwiperBlocks);
+    document.addEventListener('DOMContentLoaded', initSliderBlocks);
   } else {
-    initSwiperBlocks();
+    initSliderBlocks();
   }
 
   // Turbo (used by the Kirby Starterkit)
-  document.addEventListener('turbo:render',       initSwiperBlocks);
-  document.addEventListener('turbo:frame-render', initSwiperBlocks);
+  document.addEventListener('turbo:render',       initSliderBlocks);
+  document.addEventListener('turbo:frame-render', initSliderBlocks);
 
   // htmx
-  document.addEventListener('htmx:afterSettle',  initSwiperBlocks);
+  document.addEventListener('htmx:afterSettle',  initSliderBlocks);
 
   // Expose for manual re-init if needed
-  window.initSwiperBlocks = initSwiperBlocks;
+  window.initSliderBlocks = initSliderBlocks;
+  window.initSwiperBlocks = initSliderBlocks; // 1.x name; remove with the 1.x line
 
 }());

@@ -3,7 +3,7 @@
 /**
  * Snippet rendering tests
  *
- * Verifies the HTML output of snippets/blocks/swiper.php
+ * Verifies the HTML output of snippets/blocks/slider.php
  * across a range of block configurations.
  */
 
@@ -16,12 +16,12 @@ test('renders nothing when slides is empty', function () {
 
 // ── Wrapper structure ─────────────────────────────────────────────────────────
 
-test('renders container with both swiper and swiper-block classes', function () {
+test('renders container with both swiper and slider-block classes', function () {
     $html = renderBlock(makeBlock(['slides' => [
         ['heading' => 'Test Slide', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
     ]]));
-    // `swiper` (Swiper's convention, base CSS) + `swiper-block` (our override hook)
-    expect($html)->toContain('class="swiper swiper-block"');
+    // `swiper` (Swiper's convention, base CSS) + `slider-block` (our override hook)
+    expect($html)->toContain('class="swiper slider-block"');
 });
 
 test('wrapper has unique id attribute', function () {
@@ -38,22 +38,22 @@ test('wrapper has aria carousel role', function () {
     expect($html)->toContain('aria-roledescription="carousel"');
 });
 
-// ── data-swiper-config ────────────────────────────────────────────────────────
+// ── data-slider-config ────────────────────────────────────────────────────────
 
-test('data-swiper-config attribute contains valid json', function () {
+test('data-slider-config attribute contains valid json', function () {
     $html = renderBlock(makeBlock(['slides' => [
         ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
     ]]));
 
-    preg_match('/data-swiper-config="([^"]+)"/', $html, $m);
-    expect($m)->not->toBeEmpty('data-swiper-config attribute missing');
+    preg_match('/data-slider-config="([^"]+)"/', $html, $m);
+    expect($m)->not->toBeEmpty('data-slider-config attribute missing');
 
     $config = json_decode(html_entity_decode($m[1]), true);
     expect(json_last_error())->toBe(JSON_ERROR_NONE);
     expect($config)->toBeArray();
 });
 
-test('data-swiper-config reflects effect setting', function () {
+test('data-slider-config reflects effect setting', function () {
     $html = renderBlock(makeBlock([
         'effect' => 'fade',
         'slides' => [
@@ -61,12 +61,12 @@ test('data-swiper-config reflects effect setting', function () {
         ],
     ]));
 
-    preg_match('/data-swiper-config="([^"]+)"/', $html, $m);
+    preg_match('/data-slider-config="([^"]+)"/', $html, $m);
     $config = json_decode(html_entity_decode($m[1]), true);
     expect($config['effect'])->toBe('fade');
 });
 
-test('data-swiper-config includes loop setting', function () {
+test('data-slider-config includes loop setting', function () {
     $html = renderBlock(makeBlock([
         'loop'   => 'true',
         'slides' => [
@@ -74,7 +74,7 @@ test('data-swiper-config includes loop setting', function () {
         ],
     ]));
 
-    preg_match('/data-swiper-config="([^"]+)"/', $html, $m);
+    preg_match('/data-slider-config="([^"]+)"/', $html, $m);
     $config = json_decode(html_entity_decode($m[1]), true);
     expect($config['loop'])->toBeTrue();
 });
@@ -83,21 +83,21 @@ test('data-swiper-config includes loop setting', function () {
 
 test('auto height emits no sizing custom properties', function () {
     $html = renderBlock(makeBlock([
-        'slider_height' => '0',
+        'height' => '0',
         'slides' => [
             ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    // No --swiper-block-* sizing properties. The style attribute is not empty:
+    // No --slider-block-* sizing properties. The style attribute is not empty:
     // easing lives there too and defaults to a non-Swiper curve.
-    expect($html)->not->toContain('--swiper-block-');
+    expect($html)->not->toContain('--slider-block-');
 });
 
 test('a block with nothing to style emits an empty style attribute', function () {
     // Auto height and Swiper's own easing: no declarations, and no stray
     // semicolon from joining two empty segments.
     $html = renderBlock(makeBlock([
-        'slider_height' => '0',
+        'height' => '0',
         'easing'        => 'ease',
         'slides' => [
             ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
@@ -120,13 +120,13 @@ test('the easing custom property reaches the block element', function () {
 
 test('explicit fixed height sets the fixed-height custom property', function () {
     $html = renderBlock(makeBlock([
-        'slider_height'      => '80',
-        'slider_height_unit' => 'vh',
+        'height'      => '80',
+        'height_unit' => 'vh',
         'slides' => [
             ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    expect($html)->toContain('--swiper-block-fixed-height:80vh');
+    expect($html)->toContain('--slider-block-fixed-height:80vh');
 });
 
 // ── Navigation & pagination ───────────────────────────────────────────────────
@@ -200,7 +200,7 @@ test('cta link is absent when link field is empty', function () {
     $html = renderBlock(makeBlock(['slides' => [
         ['heading' => 'Title', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
     ]]));
-    expect($html)->not->toContain('swiper-slide__cta');
+    expect($html)->not->toContain('slider-slide__cta');
 });
 
 test('multiple slides render multiple swiper-slide divs', function () {
@@ -219,15 +219,15 @@ test('caption carries both placement classes', function () {
         ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '',
          'content_position' => 'right', 'content_position_y' => 'bottom'],
     ]]));
-    expect($html)->toContain('swiper-slide-caption--right')
-                 ->toContain('swiper-slide-caption--bottom');
+    expect($html)->toContain('slider-slide-caption--right')
+                 ->toContain('slider-slide-caption--bottom');
 });
 
 test('caption falls back to middle when no vertical position is stored', function () {
     $html = renderBlock(makeBlock(['slides' => [
         ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
     ]]));
-    expect($html)->toContain('swiper-slide-caption--middle');
+    expect($html)->toContain('slider-slide-caption--middle');
 });
 
 test('heading and subtext carry the block-level Tailwind size classes', function () {
@@ -238,8 +238,8 @@ test('heading and subtext carry the block-level Tailwind size classes', function
             ['heading' => 'Big', 'image' => [], 'subtext' => 'Small', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    expect($html)->toContain('class="swiper-slide-heading text-sm"')
-                 ->toContain('class="swiper-slide-subtext text-xl"');
+    expect($html)->toContain('class="slider-slide-heading text-sm"')
+                 ->toContain('class="slider-slide-subtext text-xl"');
 });
 
 test('the caption wrapper carries the block-level font class', function () {
@@ -251,13 +251,13 @@ test('the caption wrapper carries the block-level font class', function () {
             ['heading' => 'Big', 'image' => [], 'subtext' => 'Small', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    expect($html)->toContain('swiper-slide-caption--middle font-body');
+    expect($html)->toContain('slider-slide-caption--middle font-body');
 
     // Unset falls back to the default rather than emitting a bare class.
     $plain = renderBlock(makeBlock(['slides' => [
         ['heading' => 'Big', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
     ]]));
-    expect($plain)->toContain('swiper-slide-caption--middle font-sans');
+    expect($plain)->toContain('slider-slide-caption--middle font-sans');
 });
 
 test('caption colour renders as an inline color when set', function () {
@@ -312,7 +312,7 @@ test('non-slide effect adds modifier class to wrapper', function () {
             ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    expect($html)->toContain('swiper-block--fade');
+    expect($html)->toContain('slider-block--fade');
 });
 
 test('default slide effect does not add modifier class', function () {
@@ -322,7 +322,7 @@ test('default slide effect does not add modifier class', function () {
             ['heading' => 'Test', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center'],
         ],
     ]));
-    expect($html)->not->toContain('swiper-block--slide');
+    expect($html)->not->toContain('slider-block--slide');
 });
 
 // ── Slide images: picture, ladder, loading ────────────────────────────────────
@@ -385,7 +385,7 @@ test('switching avif off returns the markup to a single-format img', function ()
     $kirby = kirby();
 
     try {
-        $kirby->clone(['options' => ['ianhobbs.kirby-slider-block.formats' => ['avif' => false]]]);
+        $kirby->clone(['options' => ['ianhobbs.slider-block.formats' => ['avif' => false]]]);
 
         $html = renderImageRow();
 

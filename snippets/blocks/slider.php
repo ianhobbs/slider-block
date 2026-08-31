@@ -4,11 +4,11 @@
  *
  * Renders a Swiper 14 carousel from a Kirby layout block. All computed values
  * (JS config, aspect CSS, thumb presets, responsive `sizes`) come from the
- * SwiperBlock model — see classes/SwiperBlock.php — so this snippet stays
+ * SliderBlock model — see classes/SliderBlock.php — so this snippet stays
  * markup-only. CDN scripts and plugin CSS are injected automatically on first
  * use; no manual template changes are required.
  *
- * @var \IanHobbs\Swiper\SwiperBlock $block
+ * @var \IanHobbs\Slider\SliderBlock $block
  */
 
 // ── Bail if no slides ────────────────────────────────────────────────────────
@@ -20,10 +20,10 @@ if ($slides->count() === 0) return;
 // each other too little width for the imagery, so only the first in a row
 // renders. Blocks stacked down a page are unaffected.
 if ($block->isRowDuplicate()) {
-    echo '<!-- kirby-slider-block: skipped — a layout row can hold only one Slider block -->' . "\n";
+    echo '<!-- slider-block: skipped — a layout row can hold only one Slider block -->' . "\n";
 
     if (kirby()->option('debug', false) === true) {
-        echo '<p class="swiper-block-warning">Only one Slider block per layout row. '
+        echo '<p class="slider-block-warning">Only one Slider block per layout row. '
            . 'Move this one to a row of its own.</p>' . "\n";
     }
 
@@ -35,8 +35,8 @@ if ($block->isRowDuplicate()) {
 // afresh for every render, so a snippet-local static resets between blocks and a
 // page with several Slider blocks repeated the CDN tags once per block.
 // Honour the injectAssets option — sites that load Swiper themselves can disable it.
-if (kirby()->option('ianhobbs.kirby-slider-block.injectAssets', true) && \IanHobbs\Swiper\SwiperBlock::claimAssets()) {
-    $plugin = kirby()->plugin('ianhobbs/kirby-slider-block');
+if (\IanHobbs\Slider\SliderBlock::pluginOption('injectAssets', true) && \IanHobbs\Slider\SliderBlock::claimAssets()) {
+    $plugin = kirby()->plugin('ianhobbs/slider-block');
 
     // Sites running a strict-dynamic CSP (e.g. akibeo/kirby-csp) ignore host
     // allowlists on script-src — only a matching nonce trusts a <script>. Note
@@ -52,8 +52,8 @@ if (kirby()->option('ianhobbs.kirby-slider-block.injectAssets', true) && \IanHob
     // origin, so a strict CSP needs no extra hosts — the typical style-src is
     // `'self' 'unsafe-inline'`, with no nonce or strict-dynamic to rescue an
     // off-origin stylesheet the way script-src has for the JS.
-    echo '<link rel="stylesheet" href="' . $plugin->asset('dist/swiper-block.css')->url() . '">' . "\n";
-    echo '<script src="' . $plugin->asset('dist/swiper-block.js')->url() . '" defer' . $nonce . '></script>' . "\n";
+    echo '<link rel="stylesheet" href="' . $plugin->asset('dist/slider-block.css')->url() . '">' . "\n";
+    echo '<script src="' . $plugin->asset('dist/slider-block.js')->url() . '" defer' . $nonce . '></script>' . "\n";
 }
 
 // Per-slide image params — resolved once; identical for every slide in the block.
@@ -62,7 +62,7 @@ $lqipPreset = $block->lqipPreset();
 $imgSizes   = $block->imgSizes();
 
 // Caption typography — block-level, so every slide shares one scale. Emitted as
-// Tailwind class names; swiper-block.css carries a :where() fallback for sites
+// Tailwind class names; slider-block.css carries a :where() fallback for sites
 // that don't run Tailwind (see "Caption typography" there).
 $headingSize      = $block->headingSizeClass();
 $subtextSize      = $block->subtextSizeClass();
@@ -70,10 +70,10 @@ $captionFont      = $block->captionFontClass();
 ?>
 
 <div
-  class="swiper swiper-block<?= $effect !== 'slide' ? ' swiper-block--' . $effect : '' ?>"
+  class="swiper slider-block<?= $effect !== 'slide' ? ' slider-block--' . $effect : '' ?>"
   id="<?= $block->uid() ?>"
   style="<?= $block->blockStyle() ?>"
-  data-swiper-config="<?= htmlspecialchars($block->jsConfig(), ENT_QUOTES, 'UTF-8') ?>"
+  data-slider-config="<?= htmlspecialchars($block->jsConfig(), ENT_QUOTES, 'UTF-8') ?>"
   aria-roledescription="carousel"
   aria-label="<?= $slides->count() ?> slides"
 >
@@ -97,7 +97,7 @@ $captionFont      = $block->captionFontClass();
 
       if ($imageField) {
           // Every ladder is capped to this master's real width — see
-          // SwiperBlock::capLadder(). Kirby writes each srcset descriptor from
+          // SliderBlock::capLadder(). Kirby writes each srcset descriptor from
           // the array key and never measures the thumb it made, so an uncapped
           // ladder promises widths the file cannot deliver.
           $master   = $imageField->width();
@@ -117,8 +117,8 @@ $captionFont      = $block->captionFontClass();
       $isFirst = $index === 1;
 
       $position     = $slide->content_position()->or('center')->value();
-      $positionY    = \IanHobbs\Swiper\SwiperBlock::verticalPosition($slide->content_position_y()->value());
-      $captionColor = \IanHobbs\Swiper\SwiperBlock::cssColor($slide->caption_color()->value());
+      $positionY    = \IanHobbs\Slider\SliderBlock::verticalPosition($slide->content_position_y()->value());
+      $captionColor = \IanHobbs\Slider\SliderBlock::cssColor($slide->caption_color()->value());
     ?>
 
     <div
@@ -129,10 +129,10 @@ $captionFont      = $block->captionFontClass();
     >
 
       <?php if ($imageField) : ?>
-      <figure class="swiper-slide-media" aria-hidden="true"<?php if ($block->isNative()) : ?> style="aspect-ratio:<?= $imageField->width() ?>/<?= $imageField->height() ?>"<?php endif ?>>
+      <figure class="slider-slide-media" aria-hidden="true"<?php if ($block->isNative()) : ?> style="aspect-ratio:<?= $imageField->width() ?>/<?= $imageField->height() ?>"<?php endif ?>>
 
         <img
-          class="swiper-slide__lqip"
+          class="slider-slide__lqip"
           src="<?= $lqip->url() ?>"
           width="<?= $lqip->width() ?>"
           height="<?= $lqip->height() ?>"
@@ -155,7 +155,7 @@ $captionFont      = $block->captionFontClass();
           >
           <?php endforeach ?>
           <img
-            class="swiper-slide__img"
+            class="slider-slide__img"
             src="<?= $base->url() ?>"
             <?php if ($srcset) : ?>srcset="<?= $srcset ?>"
             sizes="<?= $imgSizes ?>"
@@ -173,19 +173,19 @@ $captionFont      = $block->captionFontClass();
 
       <?php if ($slide->heading()->isNotEmpty() || $slide->subtext()->isNotEmpty() || $slide->link()->isNotEmpty()) : ?>
       <div
-        class="swiper-slide-caption swiper-slide-caption--<?= $position ?> swiper-slide-caption--<?= $positionY ?> <?= $captionFont ?>"
+        class="slider-slide-caption slider-slide-caption--<?= $position ?> slider-slide-caption--<?= $positionY ?> <?= $captionFont ?>"
         <?php if ($captionColor) : ?>style="color:<?= htmlspecialchars($captionColor, ENT_QUOTES, 'UTF-8') ?>"<?php endif ?>
       >
 
         <?php if ($slide->heading()->isNotEmpty()) : ?>
-        <p class="swiper-slide-heading <?= $headingSize ?>"><?= $slide->heading()->html() ?></p>
+        <p class="slider-slide-heading <?= $headingSize ?>"><?= $slide->heading()->html() ?></p>
         <?php endif ?>
         <?php if ($slide->subtext()->isNotEmpty()) : ?>
-        <p class="swiper-slide-subtext <?= $subtextSize ?>"><?= $slide->subtext()->html() ?></p>
+        <p class="slider-slide-subtext <?= $subtextSize ?>"><?= $slide->subtext()->html() ?></p>
         <?php endif ?>
         <?php if ($slide->link()->isNotEmpty()) : ?>
         <a
-          class="swiper-slide__cta"
+          class="slider-slide__cta"
           href="<?= $slide->link()->url() ?>"
         ><?= $slide->link_text()->or('Learn more')->html() ?></a>
         <?php endif ?>
@@ -198,4 +198,4 @@ $captionFont      = $block->captionFontClass();
     <?php endforeach ?>
   </div><!-- /.swiper-wrapper -->
 
-</div><!-- /.swiper-block -->
+</div><!-- /.slider-block -->

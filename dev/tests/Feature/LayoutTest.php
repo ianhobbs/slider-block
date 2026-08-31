@@ -10,51 +10,51 @@
  * so column widths, multiple blocks per row and theme wrappers are all covered.
  */
 
-use IanHobbs\Swiper\SwiperBlock;
+use IanHobbs\Slider\SliderBlock;
 use Kirby\Cms\Fieldsets;
 use Kirby\Data\Yaml;
 
 beforeEach(function () {
     // Each test is its own "page load": asset injection is claimed once per
     // request, and the layout scan is cached per field for the same reason.
-    SwiperBlock::forgetAssets();
-    SwiperBlock::forgetLayoutScans();
+    SliderBlock::forgetAssets();
+    SliderBlock::forgetLayoutScans();
 });
 
 // ── The host field blueprint ─────────────────────────────────────────────────
 
-test('the layout field offers the swiper block as a fieldset', function () {
+test('the layout field offers the slider block as a fieldset', function () {
     $blueprint = Yaml::read(__DIR__ . '/../fixtures/site/blueprints/fields/layout.yml');
 
     expect($blueprint['type'])->toBe('layout');
     // Without this the block can't be inserted at all.
-    expect($blueprint['fieldsets'])->toContain('swiper');
+    expect($blueprint['fieldsets'])->toContain('slider');
 });
 
 test('the fixture page resolves the layout field, so Kirby loads the blueprint', function () {
     $field = page('home')->blueprint()->field('layout');
 
     expect($field['type'])->toBe('layout');
-    expect($field['fieldsets'])->toContain('swiper');
+    expect($field['fieldsets'])->toContain('slider');
     expect($field['layouts'])->toContain('1/3, 1/3, 1/3');
 });
 
 test('the block blueprint resolves through the host field, tabs and all', function () {
     // Resolving the host field's fieldsets is what the Panel does when it opens
-    // the layout field: it loads blocks/swiper.yml from the plugin. A broken or
+    // the layout field: it loads blocks/slider.yml from the plugin. A broken or
     // unregistered blueprint fails here — one step closer to the Panel than
     // BlueprintTest, which reads the YAML file directly.
     $fieldsets = Fieldsets::factory(page('home')->blueprint()->field('layout')['fieldsets']);
-    $swiper    = $fieldsets->get('swiper');
+    $slider    = $fieldsets->get('slider');
 
-    expect($swiper)->not->toBeNull();
-    expect($swiper->name())->toBe('Slider Block');
-    expect(array_keys($swiper->tabs()))->toBe(['slides', 'layout', 'animation', 'controls', 'touch']);
+    expect($slider)->not->toBeNull();
+    expect($slider->name())->toBe('Slider Block');
+    expect(array_keys($slider->tabs()))->toBe(['slides', 'layout', 'animation', 'controls', 'touch']);
 });
 
 // ── Rendering inside a column ────────────────────────────────────────────────
 
-test('a swiper block renders in full when nested in a layout column', function () {
+test('a slider block renders in full when nested in a layout column', function () {
     $html = renderLayout(makeLayout([
         ['width' => '1/1', 'blocks' => [
             ['slides' => [
@@ -63,8 +63,8 @@ test('a swiper block renders in full when nested in a layout column', function (
         ]],
     ]));
 
-    expect($html)->toContain('class="swiper swiper-block"')
-                 ->toContain('data-swiper-config')
+    expect($html)->toContain('class="swiper slider-block"')
+                 ->toContain('data-slider-config')
                  ->toContain('In a column');
 });
 
@@ -77,10 +77,10 @@ test('the block renders identically in a narrow column — width comes from CSS,
     $narrow = renderLayout(makeLayout([['width' => '3/12', 'blocks' => [['slides' => $slides]]]]));
 
     // Identical block markup either way — only the surrounding column differs.
-    // The block emits no width of its own (.swiper-block is width:100%), so the
+    // The block emits no width of its own (.slider-block is width:100%), so the
     // column decides; a markup-level width would break the other layouts.
     $blockMarkup = function (string $html): string {
-        preg_match('/<div\s+class="swiper swiper-block.*?<\/div><!-- \/\.swiper-block -->/s', $html, $m);
+        preg_match('/<div\s+class="swiper slider-block.*?<\/div><!-- \/\.slider-block -->/s', $html, $m);
         return $m[0] ?? '';
     };
 
@@ -101,7 +101,7 @@ test('a second block in the same row is skipped, whichever column it is in', fun
         ]]]],
     ]));
 
-    expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(1);
+    expect(substr_count($html, 'class="swiper slider-block"'))->toBe(1);
     expect($html)->toContain('Left')
                  ->not->toContain('Right')
                  ->toContain('a layout row can hold only one Slider block');
@@ -116,7 +116,7 @@ test('two blocks stacked in one column: only the first renders', function () {
         ['width' => '1/1', 'blocks' => [$slide('First'), $slide('Second')]],
     ]));
 
-    expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(1);
+    expect(substr_count($html, 'class="swiper slider-block"'))->toBe(1);
     expect($html)->toContain('First')->not->toContain('Second');
 });
 
@@ -126,16 +126,16 @@ test('the skip is silent in production and explained in debug', function () {
         ['width' => '1/2', 'blocks' => [['slides' => [['heading' => 'Two', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center']]]]],
     ];
 
-    expect(renderLayout(makeLayout($row)))->not->toContain('swiper-block-warning');
+    expect(renderLayout(makeLayout($row)))->not->toContain('slider-block-warning');
 
     $default = kirby();
     $default->clone(['options' => ['debug' => true]]);
     restore_error_handler();
     restore_exception_handler();
 
-    SwiperBlock::forgetAssets();
-    SwiperBlock::forgetLayoutScans();
-    expect(renderLayout(makeLayout($row)))->toContain('swiper-block-warning');
+    SliderBlock::forgetAssets();
+    SliderBlock::forgetLayoutScans();
+    expect(renderLayout(makeLayout($row)))->toContain('slider-block-warning');
 
     $default->clone();
     restore_error_handler();
@@ -146,19 +146,19 @@ test('the skip is silent in production and explained in debug', function () {
 
 test('one block per row, several rows down a page: all of them render', function () {
     $html = renderLayout(makeLayoutRows([
-        swiperRow('Hero'),
+        sliderRow('Hero'),
         // A block beside an empty column is still the only block in its row.
-        [...swiperRow('Feature', '8/12'), ['width' => '4/12', 'blocks' => []]],
-        swiperRow('Gallery'),
+        [...sliderRow('Feature', '8/12'), ['width' => '4/12', 'blocks' => []]],
+        sliderRow('Gallery'),
     ]));
 
-    expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(3);
+    expect(substr_count($html, 'class="swiper slider-block"'))->toBe(3);
     expect($html)->toContain('Hero')->toContain('Feature')->toContain('Gallery')
                  ->not->toContain('only one Slider block');
 });
 
 test('blocks down a page get distinct ids so their configs never collide', function () {
-    $html = renderLayout(makeLayoutRows([swiperRow('One'), swiperRow('Two')]));
+    $html = renderLayout(makeLayoutRows([sliderRow('One'), sliderRow('Two')]));
 
     preg_match_all('/id="(sb-[a-f0-9]{8})"/', $html, $m);
     expect($m[1])->toHaveCount(2);
@@ -173,23 +173,23 @@ test('each block down the page keeps its own settings', function () {
         ]]]],
         [['width' => '1/1', 'blocks' => [[
             'effect'             => 'slide',
-            'slider_height'      => '60',
-            'slider_height_unit' => 'vh',
+            'height'      => '60',
+            'height_unit' => 'vh',
             'slides' => [['heading' => 'Fixed height', 'image' => [], 'subtext' => '', 'link' => '', 'link_text' => '', 'content_position' => 'center']],
         ]]]],
     ]));
 
-    expect(substr_count($html, 'swiper-block--fade'))->toBe(1);
-    expect(substr_count($html, '--swiper-block-fixed-height:60vh'))->toBe(1);
+    expect(substr_count($html, 'slider-block--fade'))->toBe(1);
+    expect(substr_count($html, '--slider-block-fixed-height:60vh'))->toBe(1);
 });
 
 // ── Column-aware image sizes ─────────────────────────────────────────────────
 
 test('the block finds its own column width in the layout field', function () {
     $spanOf = function (string $width, array $content = []): int {
-        SwiperBlock::forgetLayoutScans();
+        SliderBlock::forgetLayoutScans();
 
-        return firstSwiper(makeLayoutRows([swiperRow('Slide', $width, $content)]))->columnSpan();
+        return firstSlider(makeLayoutRows([sliderRow('Slide', $width, $content)]))->columnSpan();
     };
 
     expect($spanOf('1/1'))->toBe(12);
@@ -206,9 +206,9 @@ test('the block finds its own column width in the layout field', function () {
 
 test('a block in a part-width column asks for a smaller image', function () {
     $sizes = function (string $width): string {
-        SwiperBlock::forgetLayoutScans();
+        SliderBlock::forgetLayoutScans();
 
-        return firstSwiper(makeLayoutRows([swiperRow('Slide', $width)]))->imgSizes();
+        return firstSlider(makeLayoutRows([sliderRow('Slide', $width)]))->imgSizes();
     };
 
     // Full width is unchanged — one candidate, the whole viewport.
@@ -225,14 +225,14 @@ test('shared assets are injected once per page, however many blocks', function (
     // re-initialises on every render — so a page of three blocks emitted the
     // <link>/<script> tags three times, loading and running Swiper three times.
     $html = renderLayout(makeLayoutRows([
-        swiperRow('One'),
-        swiperRow('Two'),
-        swiperRow('Three'),
+        sliderRow('One'),
+        sliderRow('Two'),
+        sliderRow('Three'),
     ]));
 
-    expect(substr_count($html, 'dist/swiper-block.css'))->toBe(1);
-    expect(substr_count($html, 'dist/swiper-block.js'))->toBe(1);
-    expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(3);
+    expect(substr_count($html, 'dist/slider-block.css'))->toBe(1);
+    expect(substr_count($html, 'dist/slider-block.js'))->toBe(1);
+    expect(substr_count($html, 'class="swiper slider-block"'))->toBe(3);
 });
 
 test('a second page load injects the assets again', function () {
@@ -242,12 +242,12 @@ test('a second page load injects the assets again', function () {
         ]]]],
     ]));
 
-    expect(substr_count($page(), 'dist/swiper-block.js'))->toBe(1);
+    expect(substr_count($page(), 'dist/slider-block.js'))->toBe(1);
     // Same request, already claimed — no repeat.
-    expect(substr_count($page(), 'dist/swiper-block.js'))->toBe(0);
+    expect(substr_count($page(), 'dist/slider-block.js'))->toBe(0);
 
-    SwiperBlock::forgetAssets();
-    expect(substr_count($page(), 'dist/swiper-block.js'))->toBe(1);
+    SliderBlock::forgetAssets();
+    expect(substr_count($page(), 'dist/slider-block.js'))->toBe(1);
 });
 
 test('the injectAssets option suppresses the tags without spending the claim', function () {
@@ -266,13 +266,13 @@ test('the injectAssets option suppresses the tags without spending the claim', f
         restore_exception_handler();
     };
 
-    $reboot(['ianhobbs.kirby-slider-block.injectAssets' => false]);
-    expect($render())->not->toContain('dist/swiper-block.js');
+    $reboot(['ianhobbs.slider-block.injectAssets' => false]);
+    expect($render())->not->toContain('dist/slider-block.js');
 
     // Turning injection back on still works — an opted-out render must not have
     // consumed the one-shot claim.
     $reboot();
-    expect(substr_count($render(), 'dist/swiper-block.js'))->toBe(1);
+    expect(substr_count($render(), 'dist/slider-block.js'))->toBe(1);
 });
 
 test('the whole frontend ships as two same-origin files', function () {
@@ -284,7 +284,7 @@ test('the whole frontend ships as two same-origin files', function () {
     // strict policy allows `style-src 'self' 'unsafe-inline'` with no nonce and
     // no strict-dynamic, so a CDN stylesheet has nothing to fall back on.
     expect($html)->not->toContain('cdn.jsdelivr.net');
-    expect($html)->toContain('/media/plugins/ianhobbs/kirby-slider-block/');
+    expect($html)->toContain('/media/plugins/ianhobbs/slider-block/');
 
     expect(substr_count($html, '<link rel="stylesheet"'))->toBe(1);
     expect(substr_count($html, '<script src='))->toBe(1);
@@ -295,10 +295,10 @@ test('the built bundle carries Swiper and its licence', function () {
     // bundle without Swiper in it — and the block would silently do nothing.
     $dist = __DIR__ . '/../../../assets/dist';
 
-    $js = file_get_contents($dist . '/swiper-block.js');
+    $js = file_get_contents($dist . '/slider-block.js');
     expect($js)->toContain('Swiper 14.1.0')          // banner
-               ->toContain('swiper-block')            // our own code made it in
-               ->toContain('data-swiper-config');
+               ->toContain('slider-block')            // our own code made it in
+               ->toContain('data-slider-config');
 
     // Only the modules the block registers. These strings appear in the full
     // bundle but must be absent once tree-shaken.
@@ -306,7 +306,7 @@ test('the built bundle carries Swiper and its licence', function () {
         expect($js)->not->toContain($dropped);
     }
 
-    expect(file_get_contents($dist . '/swiper-block.css'))->toContain('Swiper 14.1.0');
+    expect(file_get_contents($dist . '/slider-block.css'))->toContain('Swiper 14.1.0');
     expect(file_get_contents($dist . '/LICENSE.swiper'))->toContain('The MIT License');
 });
 
@@ -324,10 +324,10 @@ test('caption colour and placement survive the layout wrapper', function () {
     ], 'card-blocks'));
 
     expect($html)->toContain('class="card-blocks"')
-                 ->toContain('swiper-slide-caption--left')
-                 ->toContain('swiper-slide-caption--bottom')
+                 ->toContain('slider-slide-caption--left')
+                 ->toContain('slider-slide-caption--bottom')
                  ->toContain('style="color:#ffcc00"')
-                 ->toContain('class="swiper-slide-heading text-base"');
+                 ->toContain('class="slider-slide-heading text-base"');
 });
 
 test('an empty column renders no block markup', function () {
@@ -338,5 +338,5 @@ test('an empty column renders no block markup', function () {
         ]]]],
     ]));
 
-    expect(substr_count($html, 'class="swiper swiper-block"'))->toBe(1);
+    expect(substr_count($html, 'class="swiper slider-block"'))->toBe(1);
 });

@@ -1,31 +1,31 @@
 <template>
   <!--
-    Collapsed block preview. Registered via blocks: { swiper } which Kirby
-    wraps as `k-block-type-swiper` extending `k-block-type-default`, so the
+    Collapsed block preview. Registered via blocks: { slider } which Kirby
+    wraps as `k-block-type-slider` extending `k-block-type-default`, so the
     block chrome (toolbar, drawer, content prop) is inherited — this component
     only renders the preview. Do NOT wrap <k-block> here: that re-resolves
-    k-block-type-swiper and recurses infinitely.
+    k-block-type-slider and recurses infinitely.
   -->
-  <div class="k-swiper-block-preview" @dblclick="open">
-    <div class="k-swiper-block-preview__thumbs">
+  <div class="k-slider-block-preview" @dblclick="open">
+    <div class="k-slider-block-preview__thumbs">
       <template v-if="hasThumbs">
         <div
           v-for="(slide, i) in previewSlides"
           :key="i"
-          class="k-swiper-block-preview__thumb"
+          class="k-slider-block-preview__thumb"
           :style="thumbStyle(slide)"
         >
-          <span v-if="slide.heading" class="k-swiper-block-preview__label">
+          <span v-if="slide.heading" class="k-slider-block-preview__label">
             {{ slide.heading }}
           </span>
         </div>
       </template>
-      <div v-else class="k-swiper-block-preview__empty">
+      <div v-else class="k-slider-block-preview__empty">
         <k-icon type="image" />
         <span>No slides yet</span>
       </div>
     </div>
-    <div class="k-swiper-block-preview__meta">
+    <div class="k-slider-block-preview__meta">
       <k-icon type="loader" />
       {{ slideCount }} slide{{ slideCount !== 1 ? 's' : '' }}
       &middot; {{ heightLabel }}
@@ -67,12 +67,14 @@ export default {
 
     // Fixed Height replaced the old Aspect Ratio field: 0 means each slide
     // follows its image's native ratio, anything else is an explicit container
-    // height in the chosen unit. The `slider_height` keys are v1 legacy — v2
-    // renames them to `height` / `height_unit`.
+    // height in the chosen unit. `slider_height` / `slider_height_unit` are the
+    // v1 keys, still read here so blocks saved before 2.0.0 label correctly —
+    // the same fallback SliderBlock::heightValue() applies on the PHP side.
     heightLabel() {
-      const height = Number(this.content?.slider_height) || 0;
+      const raw = this.content?.height ?? this.content?.slider_height;
+      const height = Number(raw) || 0;
       if (height <= 0) return 'Auto height';
-      const unit = this.content?.slider_height_unit || 'px';
+      const unit = this.content?.height_unit || this.content?.slider_height_unit || 'px';
       return `${height}${unit}`;
     },
   },
@@ -97,12 +99,12 @@ export default {
 
 <style>
 /* ── Panel preview styles ─────────────────────────────────────────────────── */
-.k-swiper-block-preview {
+.k-slider-block-preview {
   padding: var(--spacing-2);
   cursor: pointer;
 }
 
-.k-swiper-block-preview__thumbs {
+.k-slider-block-preview__thumbs {
   display: flex;
   gap: 4px;
   border-radius: var(--rounded);
@@ -111,7 +113,7 @@ export default {
   margin-bottom: var(--spacing-2);
 }
 
-.k-swiper-block-preview__thumb {
+.k-slider-block-preview__thumb {
   flex: 1;
   min-width: 0;
   border-radius: var(--rounded-sm);
@@ -120,7 +122,7 @@ export default {
   overflow: hidden;
 }
 
-.k-swiper-block-preview__label {
+.k-slider-block-preview__label {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -135,7 +137,7 @@ export default {
   text-overflow: ellipsis;
 }
 
-.k-swiper-block-preview__empty {
+.k-slider-block-preview__empty {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -148,7 +150,7 @@ export default {
   border-radius: var(--rounded);
 }
 
-.k-swiper-block-preview__meta {
+.k-slider-block-preview__meta {
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
@@ -156,7 +158,7 @@ export default {
   color: var(--color-gray-600);
 }
 
-.k-swiper-block-preview__meta .k-icon {
+.k-slider-block-preview__meta .k-icon {
   color: var(--color-blue-600);
 }
 </style>

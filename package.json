@@ -1,6 +1,6 @@
 {
-  "name": "ianhobbs-kirby-slider-block",
-  "version": "1.7.0",
+  "name": "ianhobbs-slider-block",
+  "version": "2.0.0",
   "description": "Kirby CMS layout block plugin — Swiper 14 carousel with Panel editor and image cropping",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "dev": "kirbyup serve src/index.js",
     "build": "npm run build:panel && npm run build:frontend",
     "build:panel": "kirbyup src/index.js",
-    "build:frontend": "esbuild src/frontend/swiper-block.js --bundle --minify --format=iife --target=es2022 --legal-comments=none --banner:js='/*! Bundles Swiper 14.1.0 (MIT) - https://swiperjs.com - Copyright 2019 Vladimir Kharlampidi. See assets/dist/LICENSE.swiper */' --outfile=assets/dist/swiper-block.js && esbuild src/frontend/swiper-block.entry.css --bundle --minify --legal-comments=none --banner:css='/*! Bundles Swiper 14.1.0 (MIT) - https://swiperjs.com - Copyright 2019 Vladimir Kharlampidi. See assets/dist/LICENSE.swiper */' --outfile=assets/dist/swiper-block.css",
+    "build:frontend": "esbuild src/frontend/slider-block.js --bundle --minify --format=iife --target=es2022 --legal-comments=none --banner:js='/*! Bundles Swiper 14.1.0 (MIT) - https://swiperjs.com - Copyright 2019 Vladimir Kharlampidi. See assets/dist/LICENSE.swiper */' --outfile=assets/dist/slider-block.js && esbuild src/frontend/slider-block.entry.css --bundle --minify --legal-comments=none --banner:css='/*! Bundles Swiper 14.1.0 (MIT) - https://swiperjs.com - Copyright 2019 Vladimir Kharlampidi. See assets/dist/LICENSE.swiper */' --outfile=assets/dist/slider-block.css",
     "watch": "kirbyup src/index.js --watch"
   },
   "engines": {

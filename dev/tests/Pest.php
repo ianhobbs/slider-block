@@ -14,7 +14,7 @@ uses()->beforeAll(function () {
 })->in('Feature');
 
 /**
- * Create a minimal Kirby Block with swiper content.
+ * Create a minimal Kirby Block with slider content.
  * Pass only the fields you need; defaults cover the rest.
  *
  * Structure fields must be YAML-encoded strings — Kirby stores all
@@ -22,20 +22,20 @@ uses()->beforeAll(function () {
  */
 function makeBlock(array $content = []): Kirby\Cms\Block
 {
-    // factory() resolves the registered block model (SwiperBlock), so its
+    // factory() resolves the registered block model (SliderBlock), so its
     // computed methods (jsConfig, imgSizes, …) are available in tests.
     return Kirby\Cms\Block::factory([
-        'content' => swiperContent($content),
+        'content' => sliderContent($content),
         'id'      => 'test-block-id',
-        'type'    => 'swiper',
+        'type'    => 'slider',
     ]);
 }
 
 /**
- * The content array for a swiper block: blueprint defaults with the given
+ * The content array for a slider block: blueprint defaults with the given
  * overrides merged in. Shared by makeBlock() and the layout helpers below.
  */
-function swiperContent(array $content = []): array
+function sliderContent(array $content = []): array
 {
     // Encode any array values (structure fields) to YAML strings
     $encoded = [];
@@ -45,8 +45,8 @@ function swiperContent(array $content = []): array
 
     return array_merge([
             'slides'                  => '',
-            'slider_height'           => '0',
-            'slider_height_unit'      => 'px',
+            'height'                  => '0',
+            'height_unit'             => 'px',
             'direction'               => 'horizontal',
             'slides_per_view'         => '1',
             'slides_per_group'        => '1',
@@ -76,12 +76,12 @@ function swiperContent(array $content = []): array
 }
 
 /**
- * Render the swiper snippet for a block and return the HTML string.
+ * Render the slider snippet for a block and return the HTML string.
  */
 function renderBlock(Kirby\Cms\Block $block): string
 {
     ob_start();
-    snippet('blocks/swiper', ['block' => $block]);
+    snippet('blocks/slider', ['block' => $block]);
     return ob_get_clean() ?: '';
 }
 
@@ -90,7 +90,7 @@ function renderBlock(Kirby\Cms\Block $block): string
  * real context the block ships into (see fixtures/site/blueprints/fields/layout.yml).
  *
  * $columns is a list of ['width' => '1/3', 'blocks' => [ [block content overrides] ]];
- * every block is a swiper block, since that's what these tests exercise.
+ * every block is a slider block, since that's what these tests exercise.
  */
 function makeLayout(array $columns, string $theme = 'plain-blocks-padded'): Kirby\Cms\Layouts
 {
@@ -104,8 +104,8 @@ function makeLayout(array $columns, string $theme = 'plain-blocks-padded'): Kirb
                 // Distinct ids — uid() hashes them, so colliding ids would mean
                 // two blocks sharing one DOM id and one Swiper instance.
                 'id'      => "block-{$i}-{$j}",
-                'type'    => 'swiper',
-                'content' => swiperContent($content),
+                'type'    => 'slider',
+                'content' => sliderContent($content),
             ];
         }
 
@@ -127,7 +127,7 @@ function makeLayout(array $columns, string $theme = 'plain-blocks-padded'): Kirb
  * One layout row holding a single block — the supported arrangement, and the
  * shape most layout tests need. Returns a row in makeLayoutRows() format.
  */
-function swiperRow(string $heading, string $width = '1/1', array $content = []): array
+function sliderRow(string $heading, string $width = '1/1', array $content = []): array
 {
     return [[
         'width'  => $width,
@@ -146,7 +146,7 @@ function swiperRow(string $heading, string $width = '1/1', array $content = []):
  * Turn raw layout data into Layouts *via a content field*, the way a real page
  * does. Going through the field matters: it's what gives each block a parent
  * field, which is how the model finds its own layout column again (see
- * SwiperBlock::layoutContext()). Layouts::factory() alone leaves that null.
+ * SliderBlock::layoutContext()). Layouts::factory() alone leaves that null.
  */
 function makeLayoutsField(array $layouts): Kirby\Cms\Layouts
 {
@@ -173,8 +173,8 @@ function makeLayoutRows(array $rows, string $theme = 'plain-blocks-padded'): Kir
             foreach (($column['blocks'] ?? []) as $j => $content) {
                 $blocks[] = [
                     'id'      => "block-{$r}-{$i}-{$j}",
-                    'type'    => 'swiper',
-                    'content' => swiperContent($content),
+                    'type'    => 'slider',
+                    'content' => sliderContent($content),
                 ];
             }
 
@@ -196,23 +196,23 @@ function makeLayoutRows(array $rows, string $theme = 'plain-blocks-padded'): Kir
 }
 
 /**
- * The first swiper block in a Layouts collection, as the model — for asserting
+ * The first slider block in a Layouts collection, as the model — for asserting
  * on computed values (columnSpan, imgSizes) that never reach the markup when a
  * fixture slide has no image.
  */
-function firstSwiper(Kirby\Cms\Layouts $layouts): IanHobbs\Swiper\SwiperBlock
+function firstSlider(Kirby\Cms\Layouts $layouts): IanHobbs\Slider\SliderBlock
 {
     foreach ($layouts as $layout) {
         foreach ($layout->columns() as $column) {
             foreach ($column->blocks() as $block) {
-                if ($block->type() === 'swiper') {
+                if ($block->type() === 'slider') {
                     return $block;
                 }
             }
         }
     }
 
-    throw new RuntimeException('No swiper block in the given layouts');
+    throw new RuntimeException('No slider block in the given layouts');
 }
 
 /**
@@ -246,7 +246,7 @@ function renderLayout(Kirby\Cms\Layouts $layouts): string
  * a file. Returns a row in makeLayoutRows() format so the block keeps a parent
  * field, which is what lets `image()->toFiles()` resolve against page('home').
  */
-function swiperImageRow(int $slides = 1, array $content = [], string $width = '1/1'): array
+function sliderImageRow(int $slides = 1, array $content = [], string $width = '1/1'): array
 {
     $built = [];
 
@@ -267,8 +267,8 @@ function swiperImageRow(int $slides = 1, array $content = [], string $width = '1
     ]];
 }
 
-/** The rendered HTML of a one-block row built by swiperImageRow(). */
+/** The rendered HTML of a one-block row built by sliderImageRow(). */
 function renderImageRow(int $slides = 1, array $content = []): string
 {
-    return renderBlock(firstSwiper(makeLayoutRows([swiperImageRow($slides, $content)])));
+    return renderBlock(firstSlider(makeLayoutRows([sliderImageRow($slides, $content)])));
 }

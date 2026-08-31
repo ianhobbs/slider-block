@@ -1,6 +1,6 @@
 {
-  "name": "ianhobbs/kirby-slider-block-dev",
-  "description": "Development environment for the kirby-slider-block plugin — Kirby install + Pest suite. Not published.",
+  "name": "ianhobbs/slider-block-dev",
+  "description": "Development environment for the slider-block plugin — Kirby install + Pest suite. Not published.",
   "license": "MIT",
   "type": "project",
   "require-dev": {

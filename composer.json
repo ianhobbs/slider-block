@@ -1,5 +1,5 @@
 {
-  "name": "ianhobbs/kirby-slider-block",
+  "name": "ianhobbs/slider-block",
   "description": "Kirby CMS layout block plugin — Swiper 14 carousel with Panel editor and image cropping",
   "type": "kirby-plugin",
   "license": "MIT",
@@ -23,7 +23,7 @@
     "getkirby/cms": "<5.0.0 || >=6.0.0"
   },
   "extra": {
-    "installer-name": "kirby-slider-block"
+    "installer-name": "slider-block"
   },
   "config": {
     "optimize-autoloader": true,

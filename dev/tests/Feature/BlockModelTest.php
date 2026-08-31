@@ -1,16 +1,16 @@
 <?php
 
 /**
- * SwiperBlock model tests
+ * SliderBlock model tests
  *
  * Verifies the computed values the snippet relies on — JS config, responsive
  * `sizes`, aspect CSS and thumb presets — in isolation, without rendering HTML.
  */
 
-use IanHobbs\Swiper\SwiperBlock;
+use IanHobbs\Slider\SliderBlock;
 
-test('swiper blocks resolve to the SwiperBlock model', function () {
-    expect(makeBlock())->toBeInstanceOf(SwiperBlock::class);
+test('slider blocks resolve to the SliderBlock model', function () {
+    expect(makeBlock())->toBeInstanceOf(SliderBlock::class);
 });
 
 // ── jsConfig ────────────────────────────────────────────────────────────────
@@ -31,18 +31,18 @@ test('jsConfig returns valid JSON of Swiper options', function () {
 });
 
 test('jsConfig reports whether the block has an explicit height', function () {
-    // swiper-block.js turns autoHeight off when this is true. With a Fixed
+    // slider-block.js turns autoHeight off when this is true. With a Fixed
     // Height the slides are height:100% of the wrapper, so letting autoHeight
     // size that wrapper from the active slide is circular — and with `observer`
     // on, each write triggers another update and the height oscillates. That
     // feedback loop was the mobile flicker.
     expect(json_decode(makeBlock()->jsConfig(), true)['fixedHeight'])->toBeFalse();
-    expect(json_decode(makeBlock(['slider_height' => '0'])->jsConfig(), true)['fixedHeight'])->toBeFalse();
+    expect(json_decode(makeBlock(['height' => '0'])->jsConfig(), true)['fixedHeight'])->toBeFalse();
 
     foreach (['px', 'vh', 'svh'] as $unit) {
         $data = json_decode(makeBlock([
-            'slider_height'      => '600',
-            'slider_height_unit' => $unit,
+            'height'      => '600',
+            'height_unit' => $unit,
         ])->jsConfig(), true);
         expect($data['fixedHeight'])->toBeTrue();
     }
@@ -104,7 +104,7 @@ test('imgSizes narrows with the column and keeps the stacked size first', functi
 
 test('the stacking breakpoint is configurable', function () {
     $default = kirby();
-    $default->clone(['options' => ['ianhobbs.kirby-slider-block.stackBreakpoint' => '60rem']]);
+    $default->clone(['options' => ['ianhobbs.slider-block.stackBreakpoint' => '60rem']]);
     restore_error_handler();
     restore_exception_handler();
 
@@ -133,23 +133,23 @@ test('aspectStyle is empty in native mode with no explicit height', function () 
 // ── sliderHeight (explicit container height) ──────────────────────────────────
 
 test('sliderHeight returns a CSS length, or null when auto (0)', function () {
-    expect(makeBlock(['slider_height' => '0'])->sliderHeight())->toBeNull();
-    expect(makeBlock(['slider_height' => '600'])->sliderHeight())->toBe('600px');
-    expect(makeBlock(['slider_height' => '80', 'slider_height_unit' => 'vh'])->sliderHeight())->toBe('80vh');
+    expect(makeBlock(['height' => '0'])->fixedHeight())->toBeNull();
+    expect(makeBlock(['height' => '600'])->fixedHeight())->toBe('600px');
+    expect(makeBlock(['height' => '80', 'height_unit' => 'vh'])->fixedHeight())->toBe('80vh');
     // Unknown unit falls back to px
-    expect(makeBlock(['slider_height' => '50', 'slider_height_unit' => 'bogus'])->sliderHeight())->toBe('50px');
+    expect(makeBlock(['height' => '50', 'height_unit' => 'bogus'])->fixedHeight())->toBe('50px');
 });
 
 test('aspectStyle carries only the explicit container height', function () {
     // Auto (0) emits nothing at all
-    expect(makeBlock(['slider_height' => '0'])->aspectStyle())->toBe('');
+    expect(makeBlock(['height' => '0'])->aspectStyle())->toBe('');
 
-    expect(makeBlock(['slider_height' => '720'])->aspectStyle())
-        ->toBe('--swiper-block-fixed-height:720px');
+    expect(makeBlock(['height' => '720'])->aspectStyle())
+        ->toBe('--slider-block-fixed-height:720px');
 
     // Chosen unit is carried through
-    expect(makeBlock(['slider_height' => '80', 'slider_height_unit' => 'vh'])->aspectStyle())
-        ->toBe('--swiper-block-fixed-height:80vh');
+    expect(makeBlock(['height' => '80', 'height_unit' => 'vh'])->aspectStyle())
+        ->toBe('--slider-block-fixed-height:80vh');
 });
 
 // ── Easing ───────────────────────────────────────────────────────────────────
@@ -173,21 +173,21 @@ test('easing maps to a CSS timing function and rejects anything else', function 
 });
 
 test('blockStyle joins the height and easing declarations', function () {
-    $both = makeBlock(['slider_height' => '420', 'easing' => 'linear'])->blockStyle();
-    expect($both)->toBe('--swiper-block-fixed-height:420px;--swiper-wrapper-transition-timing-function:linear');
+    $both = makeBlock(['height' => '420', 'easing' => 'linear'])->blockStyle();
+    expect($both)->toBe('--slider-block-fixed-height:420px;--swiper-wrapper-transition-timing-function:linear');
 
     // No height, Swiper-default easing: nothing to emit, and no stray semicolon.
-    expect(makeBlock(['slider_height' => '0', 'easing' => 'ease'])->blockStyle())->toBe('');
+    expect(makeBlock(['height' => '0', 'easing' => 'ease'])->blockStyle())->toBe('');
 
     // Easing alone must not be prefixed by an empty aspect segment.
-    expect(makeBlock(['slider_height' => '0', 'easing' => 'linear'])->blockStyle())
+    expect(makeBlock(['height' => '0', 'easing' => 'linear'])->blockStyle())
         ->toBe('--swiper-wrapper-transition-timing-function:linear');
 });
 
 // ── Mobile height override ───────────────────────────────────────────────────
 
 test('mobileHeight needs the px unit, the toggle and a non-zero number', function () {
-    $on = ['slider_height' => '720', 'mobile_height_enable' => 'true', 'mobile_height' => '320'];
+    $on = ['height' => '720', 'mobile_height_enable' => 'true', 'mobile_height' => '320'];
 
     expect(makeBlock($on)->mobileHeight())->toBe('320px');
 
@@ -195,8 +195,8 @@ test('mobileHeight needs the px unit, the toggle and a non-zero number', functio
     // an editor can leave it on after clearing the number or changing the unit.
     expect(makeBlock([...$on, 'mobile_height_enable' => 'false'])->mobileHeight())->toBeNull();
     expect(makeBlock([...$on, 'mobile_height' => '0'])->mobileHeight())->toBeNull();
-    expect(makeBlock([...$on, 'slider_height_unit' => 'vh'])->mobileHeight())->toBeNull();
-    expect(makeBlock([...$on, 'slider_height_unit' => 'svh'])->mobileHeight())->toBeNull();
+    expect(makeBlock([...$on, 'height_unit' => 'vh'])->mobileHeight())->toBeNull();
+    expect(makeBlock([...$on, 'height_unit' => 'svh'])->mobileHeight())->toBeNull();
 
     // Nothing configured at all
     expect(makeBlock()->mobileHeight())->toBeNull();
@@ -204,15 +204,15 @@ test('mobileHeight needs the px unit, the toggle and a non-zero number', functio
 
 test('aspectStyle emits the mobile height only alongside a fixed height', function () {
     expect(makeBlock([
-        'slider_height'        => '720',
+        'height'        => '720',
         'mobile_height_enable' => 'true',
         'mobile_height'        => '320',
-    ])->aspectStyle())->toBe('--swiper-block-fixed-height:720px;--swiper-block-mobile-height:320px');
+    ])->aspectStyle())->toBe('--slider-block-fixed-height:720px;--slider-block-mobile-height:320px');
 
     // With no desktop height there is nothing to override, so the mobile value
     // stays out of the style attribute even when the toggle and number are set.
     expect(makeBlock([
-        'slider_height'        => '0',
+        'height'        => '0',
         'mobile_height_enable' => 'true',
         'mobile_height'        => '320',
     ])->aspectStyle())->toBe('');
@@ -245,7 +245,7 @@ test('capLadder relabels the first oversized step and drops the rest', function 
     // Kirby writes the descriptor from the array key and never measures the
     // thumb, while the darkroom refuses to upscale — so past the master every
     // step would be the same file under a wider claim.
-    $capped = SwiperBlock::capLadder($ladder, 1000);
+    $capped = SliderBlock::capLadder($ladder, 1000);
 
     expect(array_keys($capped))->toBe(['640w', '900w', '1000w']);
     expect($capped['1000w']['width'])->toBe(1000);
@@ -254,11 +254,11 @@ test('capLadder relabels the first oversized step and drops the rest', function 
     expect($capped['1000w']['format'])->toBe('webp');
 
     // A master wider than the whole ladder leaves it untouched.
-    expect(array_keys(SwiperBlock::capLadder($ladder, 4000)))
+    expect(array_keys(SliderBlock::capLadder($ladder, 4000)))
         ->toBe(['640w', '900w', '1200w', '1600w']);
 
     // An exact match is not a cap — it passes through on its own key.
-    expect(array_keys(SwiperBlock::capLadder($ladder, 1200)))
+    expect(array_keys(SliderBlock::capLadder($ladder, 1200)))
         ->toBe(['640w', '900w', '1200w']);
 });
 
@@ -289,7 +289,7 @@ test('avif is offered as a source and webp rides on the img itself', function ()
 });
 
 test('a fixed-ratio block reads the named per-orientation srcset', function () {
-    // The site defines no swiper-horiz/-vert here, so there is nothing to
+    // The site defines no slider-horiz/-vert here, so there is nothing to
     // resolve — the model says so rather than inventing a ladder.
     $block = makeBlock(['aspect_ratio' => '16/9']);
 
@@ -297,7 +297,7 @@ test('a fixed-ratio block reads the named per-orientation srcset', function () {
     expect($block->baseThumbOptions(PHP_INT_MAX))->toBeNull();
 
     // And no <source> either: a per-format ladder is opt-in by defining
-    // swiper-horiz-avif, so an unconfigured site gets a plain <img>.
+    // slider-horiz-avif, so an unconfigured site gets a plain <img>.
     expect($block->srcsets(PHP_INT_MAX))->toBe([]);
 });
 
@@ -319,7 +319,7 @@ test('caption size classes default and reject values outside the scale', functio
 test('caption font class defaults to font-sans and rejects anything off the list', function () {
     expect(makeBlock()->captionFontClass())->toBe('font-sans');
 
-    foreach (SwiperBlock::CAPTION_FONTS as $font) {
+    foreach (SliderBlock::CAPTION_FONTS as $font) {
         expect(makeBlock(['caption_font' => $font])->captionFontClass())->toBe($font);
     }
 
@@ -328,26 +328,26 @@ test('caption font class defaults to font-sans and rejects anything off the list
 });
 
 test('verticalPosition accepts the three placements and defaults to middle', function () {
-    expect(SwiperBlock::verticalPosition('top'))->toBe('top');
-    expect(SwiperBlock::verticalPosition('bottom'))->toBe('bottom');
-    expect(SwiperBlock::verticalPosition(null))->toBe('middle');
-    expect(SwiperBlock::verticalPosition(''))->toBe('middle');
-    expect(SwiperBlock::verticalPosition('sideways'))->toBe('middle');
+    expect(SliderBlock::verticalPosition('top'))->toBe('top');
+    expect(SliderBlock::verticalPosition('bottom'))->toBe('bottom');
+    expect(SliderBlock::verticalPosition(null))->toBe('middle');
+    expect(SliderBlock::verticalPosition(''))->toBe('middle');
+    expect(SliderBlock::verticalPosition('sideways'))->toBe('middle');
 });
 
 test('cssColor passes hex and functional colours, drops anything else', function () {
-    expect(SwiperBlock::cssColor('#fff'))->toBe('#fff');
-    expect(SwiperBlock::cssColor('#ffcc00'))->toBe('#ffcc00');
-    expect(SwiperBlock::cssColor('#ffcc0080'))->toBe('#ffcc0080');
-    expect(SwiperBlock::cssColor(' rgba(0, 0, 0, 0.5) '))->toBe('rgba(0, 0, 0, 0.5)');
-    expect(SwiperBlock::cssColor('hsl(210 40% 50%)'))->toBe('hsl(210 40% 50%)');
+    expect(SliderBlock::cssColor('#fff'))->toBe('#fff');
+    expect(SliderBlock::cssColor('#ffcc00'))->toBe('#ffcc00');
+    expect(SliderBlock::cssColor('#ffcc0080'))->toBe('#ffcc0080');
+    expect(SliderBlock::cssColor(' rgba(0, 0, 0, 0.5) '))->toBe('rgba(0, 0, 0, 0.5)');
+    expect(SliderBlock::cssColor('hsl(210 40% 50%)'))->toBe('hsl(210 40% 50%)');
 
-    expect(SwiperBlock::cssColor(null))->toBeNull();
-    expect(SwiperBlock::cssColor(''))->toBeNull();
-    expect(SwiperBlock::cssColor('red'))->toBeNull();          // keyword — not stored by the field
-    expect(SwiperBlock::cssColor('#12345'))->toBeNull();       // malformed hex
-    expect(SwiperBlock::cssColor('url(javascript:alert(1))'))->toBeNull();
-    expect(SwiperBlock::cssColor('#fff;background:url(x)'))->toBeNull();
+    expect(SliderBlock::cssColor(null))->toBeNull();
+    expect(SliderBlock::cssColor(''))->toBeNull();
+    expect(SliderBlock::cssColor('red'))->toBeNull();          // keyword — not stored by the field
+    expect(SliderBlock::cssColor('#12345'))->toBeNull();       // malformed hex
+    expect(SliderBlock::cssColor('url(javascript:alert(1))'))->toBeNull();
+    expect(SliderBlock::cssColor('#fff;background:url(x)'))->toBeNull();
 });
 
 // ── uid ───────────────────────────────────────────────────────────────────────

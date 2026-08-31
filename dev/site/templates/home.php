@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Swiper Block — dev</title>
+  <title>Slider Block — dev</title>
   <style>
     /* The host site owns layout CSS — the plugin ships none. This is a minimal
        stand-in for a real site's 12-column grid, enough to see the block behave
@@ -41,7 +41,7 @@
     }
 
     /* Only shown when a second block lands in the same row (debug only) */
-    .swiper-block-warning {
+    .slider-block-warning {
       padding: .75rem 1rem;
       color: #7a2e0e;
       background: #fef3c7;
@@ -51,7 +51,7 @@
 </head>
 <body>
   <div class="dev-bar">
-    Swiper block dev site — edit in the <a href="/panel">Panel</a>.
+    Slider block dev site — edit in the <a href="/panel">Panel</a>.
     Assets are injected by the block snippet, exactly as on a real site.
   </div>
   <main>
@@ -66,7 +66,7 @@
         </div>
       <?php endforeach ?>
     <?php else : ?>
-      <p>No layout yet. Add a row with a Swiper block in the <a href="/panel">Panel</a>,
+      <p>No layout yet. Add a row with a Slider block in the <a href="/panel">Panel</a>,
          upload a few images, then reload.</p>
     <?php endif ?>
   </main>
