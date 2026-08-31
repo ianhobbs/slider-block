@@ -292,14 +292,13 @@ matches what the frontend renders.
 
 ## The 1.x compatibility surface
 
-2.0.0 renamed everything the plugin owns. The names a *site* owns could not be renamed with it
-— content it has saved, config it wrote, templates it maintains — so each of those is read
-under both names. The fallbacks are deliberately all in one place per layer:
+2.0.0 renamed everything the plugin owns. What a site has already *saved* could not be renamed
+with it — its content files, the images it uploaded, templates it maintains — so each of those
+is read under both names. The fallbacks are deliberately all in one place per layer:
 
 | Layer | Where | What it covers |
 |---|---|---|
 | Block type, blueprints, snippets, class | `index.php` | `swiper` block type + `blocks/swiper`, `files/swiper-image`, `class_alias()` for `IanHobbs\Swiper\SwiperBlock` |
-| Options | `SliderBlock::pluginOption()` | `ianhobbs.kirby-slider-block.*` |
 | Named srcsets / thumb presets | `SliderBlock::resolveThumbName()` | `swiper-horiz`, `swiper-vert`, `swiper-lqip-*` |
 | Content keys | `SliderBlock::heightValue()` | `slider_height`, `slider_height_unit` |
 | Panel preview | `src/SliderBlock.vue` | the same two content keys, and the `swiper` block registration in `src/index.js` |
@@ -308,8 +307,14 @@ under both names. The fallbacks are deliberately all in one place per layer:
 `dev/tests/Feature/LegacyCompatTest.php` is the contract for all of it — retiring the 1.x line
 means deleting that file and the code it names, together and deliberately.
 
-CSS class names are the one thing with no fallback: a site overriding `.swiper-block` or
-`--swiper-block-*` must rename its own selectors. Swiper's own classes are untouched.
+Two things have **no** fallback, both deliberate. **Option keys** follow the package name, so a
+site must move its own `config.php` keys to `ianhobbs.slider-block.*`; an old key is ignored and
+the option returns to its default. **CSS class names** are the site's to fix too: anything
+overriding `.swiper-block` or `--swiper-block-*` must rename its selectors. Swiper's own classes
+are untouched.
+
+Asset URLs moved with the plugin id to `/media/plugins/ianhobbs/slider-block/`, which breaks a
+template that hardcoded the old path rather than resolving it through `$plugin->asset()`.
 
 ---
 
@@ -341,12 +346,12 @@ CSS class names are the one thing with no fallback: a site overriding `.swiper-b
 Packagist picks up the new tag automatically. Do **not** add a `"version"` field to
 `composer.json` — Packagist reads versions from git tags only.
 
-The package was renamed from `ianhobbs/kirby-slider-block` to `ianhobbs/slider-block` in
-2.0.0. Packagist keys packages by the `name` in `composer.json`, not by repository URL, so the
-new name is a **separate Packagist package** and has to be submitted once; the old one should
-then be marked abandoned, with `ianhobbs/slider-block` as its replacement, so `composer
-require` on the old name points people here. The GitHub repository redirects from its old URL,
-so existing clones and the old package's `source` URL keep resolving.
+The package was renamed in 2.0.0. Packagist keys packages by the `name` in `composer.json`, not
+by repository URL, so `ianhobbs/slider-block` is a **separate Packagist package** and has to be
+submitted once; the 1.x package should then be marked abandoned with this one as its
+replacement, so `composer require` on the old name points people here. The GitHub repository
+redirects from its old URL, so existing clones and the old package's `source` URL keep
+resolving.
 
 > Tagging before the version bump is committed produces a release whose `index.php` reports the
 > *previous* version. A published tag can't be moved safely once Packagist has cached it — cut

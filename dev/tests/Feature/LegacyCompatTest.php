@@ -7,12 +7,16 @@ use Kirby\Cms\Block;
 /**
  * 1.x compatibility surface
  *
- * 2.0.0 renamed the package, the block type, the content keys, the option
- * prefix, the class and the named thumb presets. Everything a site stores or
- * writes itself — saved content, its own config.php, its own templates — cannot
- * be renamed with it, so each of those has a read fallback. This file is the
- * contract for those fallbacks: it fails if one is dropped by accident rather
- * than deliberately when the 1.x line is retired.
+ * 2.0.0 renamed the package, the block type, the content keys, the class and
+ * the named thumb presets. What a site has already SAVED — its content files,
+ * the images it uploaded, templates it maintains — cannot be renamed with it, so
+ * each of those is read under both names. This file is the contract for those
+ * fallbacks: it fails if one is dropped by accident rather than deliberately
+ * when the 1.x line is retired.
+ *
+ * Option keys are deliberately NOT in that set: the 1.x option prefix is gone,
+ * and a site still carrying it in config.php must move those keys to
+ * `ianhobbs.slider-block.*` or fall back to the defaults.
  */
 
 // ── Block type ───────────────────────────────────────────────────────────────
@@ -82,37 +86,6 @@ test('the v2 height keys win when both are present', function () {
 test('sliderHeight is kept as a deprecated alias of fixedHeight', function () {
     expect(makeBlock(['height' => '600'])->sliderHeight())->toBe('600px');
     expect(makeBlock(['height' => '0'])->sliderHeight())->toBeNull();
-});
-
-// ── Option prefix ────────────────────────────────────────────────────────────
-
-test('the 1.x option prefix is still honoured', function () {
-    $default = kirby();
-    $default->clone(['options' => ['ianhobbs.kirby-slider-block.stackBreakpoint' => '55rem']]);
-    restore_error_handler();
-    restore_exception_handler();
-
-    expect(makeBlock(['column_width' => '6'])->imgSizes())
-        ->toBe('(max-width: 55rem) 100vw, 50vw');
-
-    $default->clone();
-    restore_error_handler();
-    restore_exception_handler();
-});
-
-test('the 1.x option prefix wins over the plugin default it cannot see', function () {
-    // formats carries a registered default under the new prefix, so the new key
-    // never reads back as null — this is the case the old-first order exists for.
-    $default = kirby();
-    $default->clone(['options' => ['ianhobbs.kirby-slider-block.formats' => ['webp' => 'webp']]]);
-    restore_error_handler();
-    restore_exception_handler();
-
-    expect(makeBlock()->formats())->toBe(['webp']);
-
-    $default->clone();
-    restore_error_handler();
-    restore_exception_handler();
 });
 
 // ── Named srcsets and thumb presets ──────────────────────────────────────────

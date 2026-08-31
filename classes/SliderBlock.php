@@ -23,14 +23,6 @@ class SliderBlock extends Block
     public const PLUGIN_ID = 'ianhobbs.slider-block';
 
     /**
-     * The 1.x option prefix. 2.0.0 renamed the package from
-     * `ianhobbs/kirby-slider-block` to `ianhobbs/slider-block`, which moves the
-     * option namespace with it — so a site's config.php keeps working unedited,
-     * pluginOption() reads the old prefix too. Remove with the 1.x line.
-     */
-    public const LEGACY_PLUGIN_ID = 'ianhobbs.kirby-slider-block';
-
-    /**
      * Block types this model answers to. 2.0.0 renamed the type from `swiper`
      * to `slider`, and the type is written into every saved content file, so
      * `swiper` stays registered as an alias — dropping it would blank every
@@ -40,24 +32,9 @@ class SliderBlock extends Block
      */
     public const BLOCK_TYPES = ['slider', 'swiper'];
 
-    /**
-     * One option read, old prefix first.
-     *
-     * Old-first, not new-first, because the new prefix carries this plugin's
-     * registered defaults (see index.php) and so never reads back as null — a
-     * site setting only the old key could never win a new-first test. The old
-     * prefix registers no defaults, so a non-null value there is always
-     * something the site asked for explicitly. A site that sets both should
-     * drop the old key; until it does, the old key wins.
-     */
+    /** One option read, under this plugin's own prefix. */
     public static function pluginOption(string $key, mixed $default = null): mixed
     {
-        $legacy = kirby()->option(self::LEGACY_PLUGIN_ID . '.' . $key);
-
-        if ($legacy !== null) {
-            return $legacy;
-        }
-
         return kirby()->option(self::PLUGIN_ID . '.' . $key, $default);
     }
 

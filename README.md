@@ -8,7 +8,10 @@ A [Kirby CMS](https://getkirby.com). layout block plugin that renders a full-fea
 
 Swiper ships pre-bundled with the plugin — no CDN, no npm, and no build step required to use it. No site config required either: images are handled entirely by the plugin.
 
-**Requires:** Kirby 5 · PHP 8.3+
+**Current release:** 2.0.0 · **Requires:** Kirby 5 · PHP 8.3+
+
+> **2.0.0 renamed the package**; the 1.x line receives no further releases. Upgrading is a
+> one-line Composer change — see [Upgrading from 1.x](#upgrading-from-1x).
 
 ---
 
@@ -36,34 +39,41 @@ git clone https://github.com/ianhobbs/slider-block site/plugins/slider-block
 
 ## Upgrading from 1.x
 
-**2.0.0 renames the package.** `ianhobbs/kirby-slider-block` is not updated any further — the
-2.x line is published as `ianhobbs/slider-block`:
+2.0.0 renamed the package. Swap it in your `composer.json` — the 1.x package receives no
+further releases:
 
 ```bash
 composer remove ianhobbs/kirby-slider-block
 composer require ianhobbs/slider-block
 ```
 
-That also moves the install directory, so delete the old `site/plugins/kirby-slider-block/`
-after switching. Everything else in the rename has a **read fallback**, so a site that upgrades
-and changes nothing else keeps working:
+Then delete the old `site/plugins/` folder it left behind. Everything a 1.x site has already
+**saved** is read under both names, so nothing else has to change for the block to keep
+rendering:
 
-| Renamed | 1.x name | 2.x name | Still reads the 1.x name? |
-|---|---|---|---|
-| Block type | `swiper` | `slider` | Yes — saved content and blueprint `fieldsets` both keep resolving |
-| File blueprint | `swiper-image` | `slider-image` | Yes — images already uploaded keep their blueprint |
-| Option prefix | `ianhobbs.kirby-slider-block.*` | `ianhobbs.slider-block.*` | Yes — and the 1.x key wins while both are set |
-| Named srcsets | `swiper-horiz` / `swiper-vert` | `slider-horiz` / `slider-vert` | Yes — used when nothing is defined under the new name |
-| LQIP presets | `swiper-lqip-horiz` / `-vert` | `slider-lqip-horiz` / `-vert` | Yes — same rule |
-| Content keys | `slider_height` / `slider_height_unit` | `height` / `height_unit` | Yes — blocks saved by 1.x keep their height |
-| Model class | `IanHobbs\Swiper\SwiperBlock` | `IanHobbs\Slider\SliderBlock` | Yes — the old name is aliased |
-| Model method | `sliderHeight()` | `fixedHeight()` | Yes — kept as a deprecated alias |
+| Renamed | 1.x name | 2.x name |
+|---|---|---|
+| Block type | `swiper` | `slider` |
+| File blueprint | `swiper-image` | `slider-image` |
+| Named srcsets | `swiper-horiz` / `swiper-vert` | `slider-horiz` / `slider-vert` |
+| LQIP presets | `swiper-lqip-horiz` / `-vert` | `slider-lqip-horiz` / `-vert` |
+| Content keys | `slider_height` / `slider_height_unit` | `height` / `height_unit` |
+| Model class | `IanHobbs\Swiper\SwiperBlock` | `IanHobbs\Slider\SliderBlock` |
+| Model method | `sliderHeight()` | `fixedHeight()` |
 
-The fallbacks exist so the upgrade is a one-line Composer change; they are **not permanent**
-and go when the 1.x line is retired. Move your own config keys and preset names over when
-convenient.
+Those fallbacks are **not permanent** — they go when the 1.x line is retired, so move your
+content and preset names over when convenient.
 
 ### What does not fall back
+
+**Option keys.** The option prefix follows the package name, so anything you set under the 1.x
+prefix in `site/config/config.php` must move to `ianhobbs.slider-block.*`. Keys left under the
+old prefix are ignored and the option silently returns to its default.
+
+**Asset URLs.** Plugin assets are served from `/media/plugins/{plugin-id}/`, so they now live
+at `/media/plugins/ianhobbs/slider-block/`. The block resolves its own asset URLs, so this only
+matters if you hardcoded the old path in a template — see
+[Manual asset loading](#manual-asset-loading) for the way that survives a rename.
 
 **CSS class names and custom properties.** `.swiper-block`, `.swiper-slide-caption`,
 `.swiper-slide__img`, `--swiper-block-fixed-height` and the rest are now `.slider-block`,
@@ -90,7 +100,7 @@ Only the Swiper modules the block can actually use are compiled in; the rest (cu
 
 Swiper 14 targets the last couple of years of evergreen browsers: **Chrome/Edge 110+,
 Safari 16.4+ (iOS 16.4+), Firefox 110+**. Sites that still need older browsers should stay on
-**1.4.x** (published as `ianhobbs/kirby-slider-block`), which bundles Swiper 12.
+the 1.4.x releases, which bundle Swiper 12.
 
 If you prefer to control asset placement (e.g. move them to `<head>` for performance), see [Manual asset loading](#manual-asset-loading) below.
 
