@@ -296,7 +296,7 @@ test('the built bundle carries Swiper and its licence', function () {
     $dist = __DIR__ . '/../../../assets/dist';
 
     $js = file_get_contents($dist . '/slider-block.js');
-    expect($js)->toContain('Swiper 14.1.0')          // banner
+    expect($js)->toContain('Swiper 14.3.0')          // banner
                ->toContain('slider-block')            // our own code made it in
                ->toContain('data-slider-config');
 
@@ -306,7 +306,7 @@ test('the built bundle carries Swiper and its licence', function () {
         expect($js)->not->toContain($dropped);
     }
 
-    expect(file_get_contents($dist . '/slider-block.css'))->toContain('Swiper 14.1.0');
+    expect(file_get_contents($dist . '/slider-block.css'))->toContain('Swiper 14.3.0');
     expect(file_get_contents($dist . '/LICENSE.swiper'))->toContain('The MIT License');
 });
 

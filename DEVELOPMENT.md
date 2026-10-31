@@ -251,7 +251,7 @@ npm run dev              # kirbyup dev server, hot-reloads on src/ changes
 ### Frontend bundle — `src/frontend/` → `assets/dist/`
 
 `assets/dist/slider-block.js` and `.css` are what the snippet loads on the site. Each bundles
-**Swiper 14.1.0 (MIT)** with the block's own code, via esbuild.
+**Swiper 14.3.0 (MIT)** with the block's own code, via esbuild.
 
 Edit the sources, never the output:
 
@@ -352,7 +352,3 @@ submitted once; the 1.x package should then be marked abandoned with this one as
 replacement, so `composer require` on the old name points people here. The GitHub repository
 redirects from its old URL, so existing clones and the old package's `source` URL keep
 resolving.
-
-> Tagging before the version bump is committed produces a release whose `index.php` reports the
-> *previous* version. A published tag can't be moved safely once Packagist has cached it — cut
-> a new patch release instead of re-pointing it.

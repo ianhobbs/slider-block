@@ -20,13 +20,13 @@ class_alias(SliderBlock::class, 'IanHobbs\\Swiper\\SwiperBlock');
 
 Kirby::plugin('ianhobbs/slider-block', [
 
-    'version' => '2.0.0',
+    'version' => '2.0.1',
 
     // Set injectAssets to false to skip the automatic asset injection entirely
     // (e.g. when Swiper is already bundled/loaded globally by the site).
     //
     // The block ships one stylesheet and one script in assets/dist, each
-    // bundling Swiper (v14.1.0, MIT) with the block's own code. Both are served
+    // bundling Swiper (v14.3.0, MIT) with the block's own code. Both are served
     // from the site's own origin, so a strict CSP needs no extra hosts.
     'options' => [
         'injectAssets' => true,
@@ -40,11 +40,6 @@ Kirby::plugin('ianhobbs/slider-block', [
         // site config by key for associative arrays but APPENDS numeric lists,
         // so a list option could never be reduced by a site — only added to.
         'formats' => SliderBlock::DEFAULT_FORMATS,
-
-        // The format on the <img> itself, read by clients that understand
-        // neither <picture> nor srcset — so the widely decodable one, not the
-        // most efficient. Ignored when switched off in `formats`, in which case
-        // the last enabled format takes over.
         'fallbackFormat' => 'webp',
 
         // Native mode only: point a format at a srcset the site already

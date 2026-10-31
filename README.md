@@ -8,7 +8,7 @@ A [Kirby CMS](https://getkirby.com). layout block plugin that renders a full-fea
 
 Swiper ships pre-bundled with the plugin — no CDN, no npm, and no build step required to use it. No site config required either: images are handled entirely by the plugin.
 
-**Current release:** 2.0.0 · **Requires:** Kirby 5 · PHP 8.3+
+**Current release:** 2.0.1 · **Requires:** Kirby 5 · PHP 8.3+
 
 > **2.0.0 renamed the package**; the 1.x line receives no further releases. Upgrading is a
 > one-line Composer change — see [Upgrading from 1.x](#upgrading-from-1x).
@@ -92,7 +92,7 @@ copy of the old snippet.
 
 No template changes needed. When a page contains a Slider block, the snippet automatically injects Swiper and the plugin CSS **once per page load** — the first block to render claims the injection, so a page with several Slider blocks down it still loads Swiper once. Everything is self-contained.
 
-The whole frontend is **two same-origin files** — `assets/dist/slider-block.css` and `assets/dist/slider-block.js` — each bundling Swiper 14.1.0 (MIT) with the block's own code. No CDN dependency, and **nothing to allow in a Content-Security-Policy**. See [Content-Security-Policy](#content-security-policy).
+The whole frontend is **two same-origin files** — `assets/dist/slider-block.css` and `assets/dist/slider-block.js` — each bundling Swiper 14.3.0 (MIT) with the block's own code. No CDN dependency, and **nothing to allow in a Content-Security-Policy**. See [Content-Security-Policy](#content-security-policy).
 
 Only the Swiper modules the block can actually use are compiled in; the rest (cube/flip/cards effects, thumbs, zoom, parallax, scrollbar, grid, virtual, hash and history navigation) are dropped at build time — roughly a quarter off both the JavaScript and the CSS, gzipped.
 
